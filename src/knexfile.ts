@@ -3,9 +3,6 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-console.log(process.env.DEVELOPMENT_DATABASE_URL);
-console.log(process.env.PRODUCTION_DATABASE_URL);
-
 const {
   NODE_ENV = 'development',
   DEVELOPMENT_DATABASE_URL,

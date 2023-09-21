@@ -8,7 +8,7 @@ type Delegate = (
 
 function asyncErrorBoundary(
   delegate: Delegate,
-  defaultStatus: number
+  defaultStatus?: number
 ): (req: Request, res: Response, next: NextFunction) => void {
   return (request, response, next) => {
     Promise.resolve()

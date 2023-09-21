@@ -5,6 +5,7 @@ import controller from './users.controller';
 
 const router = Router();
 
-router.get('/', ...controller.list);
+// router.get('/', ...controller.list);
+router.post('/register', ...controller.create);
 
 export default router;
