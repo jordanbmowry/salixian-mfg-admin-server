@@ -6,18 +6,25 @@
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/server.js",
-    "dev": "nodemon src/server.ts"
+    "dev": "nodemon src/server.ts",
+    "migrate:make": "knex migrate:make --knexfile src/knexfile.ts",
+    "migrate:latest": "knex migrate:latest --knexfile src/knexfile.ts",
+    "migrate:rollback": "knex migrate:rollback --knexfile src/knexfile.ts"
   },
   "author": "Jordan Mowry",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "knex": "^2.5.1",
+    "pg": "^8.11.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.14",
+    "@types/dotenv": "^8.2.0",
     "@types/express": "^4.17.17",
+    "@types/node": "^20.6.3",
     "nodemon": "^3.0.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.2.2"
