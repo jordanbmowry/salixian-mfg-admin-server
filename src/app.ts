@@ -6,7 +6,7 @@ import express, {
   NextFunction,
 } from 'express';
 import usersRouter from './resources/users/users.router';
-import type { CustomError } from './types';
+import type { CustomError } from './types/types';
 
 const app: Application = express();
 
