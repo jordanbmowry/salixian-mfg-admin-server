@@ -31,10 +31,18 @@ const NOT_FOUND = 404;
 const BAD_REQUEST = 400;
 const INTERNAL_SERVER_ERROR = 500;
 
+interface RequestWithUser extends Request {
+  user?: Record<string, any>;
+}
+
 const hasRequiredProperties = hasProperties('password', 'user_name');
 const hasOnlyValidUserProps = hasOnlyValidProperties(...VALID_PROPERTIES);
 
-async function userExists(req: Request, res: Response, next: NextFunction) {
+async function userExists(
+  req: RequestWithUser,
+  res: Response,
+  next: NextFunction
+) {
   logMethod(req, 'userExists');
   const userId = req.params.userId;
   const userName = req.body.data?.user_name;
@@ -49,7 +57,7 @@ async function userExists(req: Request, res: Response, next: NextFunction) {
 }
 
 async function checkAndSetUser(
-  req: Request,
+  req: RequestWithUser,
   whereObj: WhereObj,
   next: NextFunction,
   res: Response
@@ -64,13 +72,13 @@ async function checkAndSetUser(
   }
 }
 
-const SALT_ROUNDS = process.env.BCRYPT_SALT_ROUNDS || 10;
+const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
 
 async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
 
-async function createUser(req: Request, res: Response): Promise<void> {
+async function createUser(req: RequestWithUser, res: Response): Promise<void> {
   logMethod(req, 'createUser');
   const password = await hashPassword(req.body.data.password);
   const newUser: User = {
@@ -85,7 +93,7 @@ interface UserForUpdate extends User {
   user_id: string;
 }
 
-async function updateUser(req: Request, res: Response) {
+async function updateUser(req: RequestWithUser, res: Response) {
   logMethod(req, 'updateUser');
   const updatedUser: UserForUpdate = {
     ...req.body.data,
@@ -100,20 +108,20 @@ async function updateUser(req: Request, res: Response) {
   res.json({ status: 'success', data, message: 'Updated user' });
 }
 
-async function deleteUser(req: Request, res: Response) {
+async function deleteUser(req: RequestWithUser, res: Response) {
   logMethod(req, 'deleteUser');
   const { user } = res.locals;
   await destroy(user.user_id);
   res.sendStatus(204);
 }
 
-async function listUsers(req: Request, res: Response) {
+async function listUsers(req: RequestWithUser, res: Response) {
   logMethod(req, 'listUsers');
   const data = await list();
   res.json({ message: 'List users', data, status: 'success' });
 }
 
-function readUser(req: Request, res: Response) {
+function readUser(req: RequestWithUser, res: Response) {
   logMethod(req, 'readUser');
   res.json({
     status: 'success',
@@ -122,7 +130,7 @@ function readUser(req: Request, res: Response) {
   });
 }
 
-async function login(req: Request, res: Response, next: NextFunction) {
+async function login(req: RequestWithUser, res: Response, next: NextFunction) {
   console.log('made it in login');
   logMethod(req, 'login');
   const { password: passwordEntered } = req.body.data;
@@ -171,7 +179,7 @@ async function login(req: Request, res: Response, next: NextFunction) {
   });
 }
 
-function logout(req: Request, res: Response) {
+function logout(req: RequestWithUser, res: Response) {
   logMethod(req, 'logout');
   res.clearCookie('token');
   res.json({ status: 'success', message: 'Successfully logged out.' });
