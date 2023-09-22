@@ -1,19 +1,24 @@
 import { Request, Response, NextFunction } from 'express';
+import Joi from 'joi';
+import { AppError } from './AppError';
 
 function hasOnlyValidProperties(
   ...validProperties: string[]
 ): (req: Request, res: Response, next: NextFunction) => void {
   return function (req, res, next) {
-    const { data = {} } = req.body as { data?: Record<string, any> };
+    const schema = Joi.object()
+      .keys(
+        Object.fromEntries(validProperties.map((prop) => [prop, Joi.any()]))
+      )
+      .unknown(false);
 
-    const invalidFields = Object.keys(data).filter(
-      (field) => !validProperties.includes(field)
-    );
-
-    if (invalidFields.length) {
-      const error = new Error(`Invalid field(s): ${invalidFields.join(', ')}`);
-      (error as any).status = 400; // Adding custom property to Error object
-      return next(error);
+    const { error } = schema.validate(req.body.data);
+    if (error) {
+      const errorMessage = error.details
+        .map((detail) => detail.message)
+        .join(', ');
+      const validationError = new AppError(400, errorMessage);
+      return next(validationError);
     }
     next();
   };

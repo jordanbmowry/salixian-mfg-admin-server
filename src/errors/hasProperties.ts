@@ -1,23 +1,24 @@
 import { Request, Response, NextFunction } from 'express';
+import Joi from 'joi';
+import { AppError } from './AppError';
 
 function hasProperties(
   ...properties: string[]
 ): (req: Request, res: Response, next: NextFunction) => void {
   return function (req, res, next) {
-    const { data = {} } = req.body as { data?: Record<string, any> };
+    const schema = Joi.object().keys(
+      Object.fromEntries(properties.map((prop) => [prop, Joi.any().required()]))
+    );
 
-    try {
-      properties.forEach((property) => {
-        if (data[property] === undefined) {
-          const error = new Error(`A '${property}' property is required.`);
-          (error as any).status = 400;
-          throw error;
-        }
-      });
-      next();
-    } catch (error) {
-      next(error);
+    const { error } = schema.validate(req.body.data);
+    if (error) {
+      const errorMessage = error.details
+        .map((detail) => detail.message)
+        .join(', ');
+      const validationError = new AppError(400, errorMessage);
+      return next(validationError);
     }
+    next();
   };
 }
 
