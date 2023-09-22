@@ -17,8 +17,10 @@ export function create(user: User): Promise<User> {
     .then((createdRecords) => createdRecords[0]);
 }
 
-export function read(user_id: string) {
-  return knex('users').select('*').where({ user_id }).first();
+export type WhereObj = { user_id: string } | { user_name: string };
+
+export function read(whereObj: WhereObj) {
+  return knex('users').select('*').where(whereObj).first();
 }
 
 export function update(updatedUser: User) {
@@ -33,4 +35,10 @@ export function destroy(user_id: string) {
 
 export function list() {
   return knex('users').select('*');
+}
+
+export function updateLastLogin(user_id: string) {
+  return knex('users').where('user_id', user_id).update({
+    last_login: knex.fn.now(),
+  });
 }

@@ -4,7 +4,20 @@ import methodNotAllowed from '../../errors/methodNotAllowed';
 
 const router = Router();
 
-router.route('/').get(...controller.list);
+router
+  .route('/')
+  .get(...controller.list)
+  .all(methodNotAllowed);
+
+router
+  .route('/login')
+  .post(...controller.login)
+  .all(methodNotAllowed);
+
+router
+  .route('/logout')
+  .post(...controller.logout)
+  .all(methodNotAllowed);
 
 router
   .route('/:userId([0-9]+)')

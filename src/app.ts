@@ -6,11 +6,14 @@ import express, {
   NextFunction,
 } from 'express';
 import usersRouter from './resources/users/users.router';
+import cookieParser from 'cookie-parser';
+
 import type { CustomError } from './types/types';
 
 const app: Application = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.use('/users', usersRouter);
 

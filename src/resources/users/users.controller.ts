@@ -1,9 +1,20 @@
-import { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { create, read, update, destroy, User, list } from './users.service';
+import {
+  create,
+  read,
+  update,
+  destroy,
+  User,
+  WhereObj,
+  list,
+  updateLastLogin,
+} from './users.service';
 import hasProperties from '../../errors/hasProperties';
 import hasOnlyValidProperties from '../../errors/hasOnlyValidProperties';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
+import { setTokenCookie } from '../../auth/setTokenCookie';
 
 const VALID_PROPERTIES = [
   'user_name',
@@ -16,13 +27,30 @@ const VALID_PROPERTIES = [
 const hasRequiredProperties = hasProperties('password', 'user_name');
 const hasOnlyValidUserProps = hasOnlyValidProperties(...VALID_PROPERTIES);
 
-async function userExists(req: Request, res: Response, next: NextFunction) {
-  const user = await read(req.params.userId);
-  if (user) {
-    res.locals.user = user;
-    return next();
-  }
-  next({ status: 404, message: `User cannot be found.` });
+function userExists(identifier: 'user_name' | 'user_id') {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.params.userId && identifier === 'user_id') {
+      next({ status: 400, message: `Must enter a user_id as a param` });
+      return;
+    }
+
+    if (!req.body.data?.user_name && identifier === 'user_name') {
+      next({ status: 400, message: `Must enter a user_name` });
+      return;
+    }
+
+    const whereObj =
+      identifier === 'user_id'
+        ? { user_id: req.params.userId }
+        : { user_name: req.body.data?.user_name };
+
+    const user = await read(whereObj);
+    if (user) {
+      res.locals.user = user;
+      return next();
+    }
+    next({ status: 404, message: `User cannot be found.` });
+  };
 }
 
 async function hashPassword(password: string): Promise<string> {
@@ -65,21 +93,78 @@ async function listUsers(_: Request, res: Response) {
   res.json({ data });
 }
 
+function readUser(req: Request, res: Response) {
+  res.json({ data: res.locals.user });
+}
+
+async function login(req: Request, res: Response) {
+  const { password: passwordEntered } = req.body.data;
+  const { user_id, password: hashedPassword, user_name } = res.locals.user;
+
+  if (!passwordEntered) {
+    res.status(401).send({ message: 'Password is required.' });
+    return;
+  }
+
+  if (!user_name) {
+    res.status(400).send({ message: 'Invalid username.' });
+    return;
+  }
+
+  const passwordIsValid = await bcrypt.compare(passwordEntered, hashedPassword);
+  if (!passwordIsValid) {
+    res.status(400).send({ message: 'Invalid password.' });
+    return;
+  }
+
+  if (!process.env.JWT_SECRET_KEY) {
+    res.status(500).send({ message: 'Internal server error.' });
+    return;
+  }
+
+  const token = jwt.sign(
+    { username: user_name, id: user_id },
+    process.env.JWT_SECRET_KEY,
+    {
+      expiresIn: '30d',
+    }
+  );
+
+  setTokenCookie(res, token);
+
+  await updateLastLogin(user_id);
+
+  const userData = { ...res.locals.user };
+  delete userData.password;
+
+  res.json({ data: userData });
+}
+
+function logout(req: Request, res: Response) {
+  res.clearCookie('token');
+  res.json({ message: 'Successfully logged out.' });
+}
+
 export default {
   create: [
     hasOnlyValidUserProps,
     hasRequiredProperties,
     asyncErrorBoundary(createUser),
   ],
-  read: [
-    asyncErrorBoundary(userExists),
-    (req: Request, res: Response) => res.json({ data: res.locals.user }),
-  ],
+  read: [asyncErrorBoundary(userExists('user_id')), readUser],
   update: [
-    asyncErrorBoundary(userExists),
+    asyncErrorBoundary(userExists('user_id')),
     hasOnlyValidUserProps,
     asyncErrorBoundary(updateUser),
   ],
-  delete: [asyncErrorBoundary(userExists), asyncErrorBoundary(deleteUser)],
+  delete: [
+    asyncErrorBoundary(userExists('user_id')),
+    asyncErrorBoundary(deleteUser),
+  ],
   list: [asyncErrorBoundary(listUsers)],
+  login: [
+    asyncErrorBoundary(userExists('user_name')),
+    asyncErrorBoundary(login),
+  ],
+  logout: [logout],
 };
