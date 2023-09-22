@@ -26,3 +26,11 @@ export function update(updatedUser: User) {
     .where({ user_id: updatedUser.user_id })
     .update(updatedUser, '*');
 }
+
+export function destroy(user_id: string) {
+  return knex('users').where({ user_id }).del();
+}
+
+export function list() {
+  return knex('users').select('*');
+}

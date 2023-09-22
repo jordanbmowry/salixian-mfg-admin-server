@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
-import { create, read, update, User } from './users.service';
+import { create, read, update, destroy, User, list } from './users.service';
 import hasProperties from '../../errors/hasProperties';
 import hasOnlyValidProperties from '../../errors/hasOnlyValidProperties';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
@@ -54,6 +54,17 @@ async function updateUser(req: Request, res: Response) {
   res.json({ data });
 }
 
+async function deleteUser(_: Request, res: Response) {
+  const { user } = res.locals;
+  await destroy(user.user_id);
+  res.sendStatus(204);
+}
+
+async function listUsers(_: Request, res: Response) {
+  const data = await list();
+  res.json({ data });
+}
+
 export default {
   create: [
     hasOnlyValidUserProps,
@@ -69,4 +80,6 @@ export default {
     hasOnlyValidUserProps,
     asyncErrorBoundary(updateUser),
   ],
+  delete: [asyncErrorBoundary(userExists), asyncErrorBoundary(deleteUser)],
+  list: [asyncErrorBoundary(listUsers)],
 };
