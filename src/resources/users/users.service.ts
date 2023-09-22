@@ -10,35 +10,76 @@ export interface User {
   user_id?: string;
 }
 
-export function create(user: User): Promise<User> {
-  return knex('users')
-    .insert(user)
-    .returning('*')
-    .then((createdRecords) => createdRecords[0]);
+export async function create(user: User): Promise<User> {
+  try {
+    const createdRecords = await knex('users').insert(user).returning('*');
+    return createdRecords[0];
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to create user: ${error.message}`);
+    }
+    throw new Error('Failed to create user.');
+  }
 }
 
 export type WhereObj = { user_id: string } | { user_name: string };
 
-export function read(whereObj: WhereObj) {
-  return knex('users').select('*').where(whereObj).first();
+export async function read(whereObj: WhereObj): Promise<User | undefined> {
+  try {
+    return await knex('users').select('*').where(whereObj).first();
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to read user: ${error.message}`);
+    }
+    throw new Error('Failed to create user.');
+  }
 }
 
-export function update(updatedUser: User) {
-  return knex('users')
-    .where({ user_id: updatedUser.user_id })
-    .update(updatedUser, '*');
+export async function update(updatedUser: User): Promise<User> {
+  try {
+    const updatedRecords = await knex('users')
+      .where({ user_id: updatedUser.user_id })
+      .update(updatedUser, '*');
+    return updatedRecords[0];
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to update user: ${error.message}`);
+    }
+    throw new Error('Failed to create user.');
+  }
 }
 
-export function destroy(user_id: string) {
-  return knex('users').where({ user_id }).del();
+export async function destroy(user_id: string): Promise<void> {
+  try {
+    await knex('users').where({ user_id }).del();
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to delete user: ${error.message}`);
+    }
+    throw new Error('Failed to create user.');
+  }
 }
 
-export function list() {
-  return knex('users').select('*');
+export async function list(): Promise<User[]> {
+  try {
+    return await knex('users').select('*');
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to list users: ${error.message}`);
+    }
+    throw new Error('Failed to create user.');
+  }
 }
 
-export function updateLastLogin(user_id: string) {
-  return knex('users').where('user_id', user_id).update({
-    last_login: knex.fn.now(),
-  });
+export async function updateLastLogin(user_id: string): Promise<void> {
+  try {
+    await knex('users').where('user_id', user_id).update({
+      last_login: knex.fn.now(),
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to update last login for user: ${error.message}`);
+    }
+    throw new Error('Failed to create user.');
+  }
 }
