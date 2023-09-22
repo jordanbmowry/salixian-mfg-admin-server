@@ -18,6 +18,7 @@ import { setTokenCookie } from '../../auth/setTokenCookie';
 import { jwtSecretExists } from '../../auth/jwtSecretExists';
 import { AppError } from '../../errors/AppError';
 import { logMethod } from '../../config/logMethod';
+import { authenticateJWT } from '../../auth/authMiddleware';
 
 const VALID_PROPERTIES = [
   'user_name',
@@ -191,14 +192,19 @@ export default {
     hasRequiredProperties,
     asyncErrorBoundary(createUser),
   ],
-  read: [asyncErrorBoundary(userExists), readUser],
+  read: [authenticateJWT, asyncErrorBoundary(userExists), readUser],
   update: [
+    authenticateJWT,
     asyncErrorBoundary(userExists),
     hasOnlyValidUserProps,
     asyncErrorBoundary(updateUser),
   ],
-  delete: [asyncErrorBoundary(userExists), asyncErrorBoundary(deleteUser)],
-  list: [asyncErrorBoundary(listUsers)],
+  delete: [
+    authenticateJWT,
+    asyncErrorBoundary(userExists),
+    asyncErrorBoundary(deleteUser),
+  ],
+  list: [authenticateJWT, asyncErrorBoundary(listUsers)],
   login: [
     jwtSecretExists,
     asyncErrorBoundary(userExists),
