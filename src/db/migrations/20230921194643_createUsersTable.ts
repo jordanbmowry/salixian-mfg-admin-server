@@ -3,7 +3,7 @@ import { Knex } from 'knex';
 export async function up(knex: Knex): Promise<void> {
   // Create the 'users' table
   await knex.schema.createTable('users', (table) => {
-    table.increments('user_id').primary();
+    table.uuid('user_id').primary().defaultTo(knex.raw('uuid_generate_v4()')); // use UUID v4 as primary key
     table.string('user_name').notNullable().unique(); // Only 'user_name' is used
     table.string('role').notNullable().defaultTo('user');
     table.string('first_name');
@@ -13,6 +13,9 @@ export async function up(knex: Knex): Promise<void> {
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
   });
+
+  // Ensure that the uuid-ossp module is enabled for the UUID generation functions
+  await knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
 
   // Add trigger to update 'updated_at' column on each update
   await knex.raw(`
@@ -25,7 +28,7 @@ export async function up(knex: Knex): Promise<void> {
     $$ LANGUAGE plpgsql;
   `);
 
-  // Create PostgreSQL function 'update_timestamp' if it doesn't exist
+  // Create PostgreSQL trigger 'update_timestamp' if it doesn't exist
   await knex.raw(`
     CREATE TRIGGER update_timestamp
     BEFORE UPDATE
@@ -36,7 +39,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-  // Drop the trigger and the table
+  // Drop the trigger, the function, and the table
   await knex.raw('DROP TRIGGER IF EXISTS update_timestamp ON users;');
   await knex.raw('DROP FUNCTION IF EXISTS update_timestamp;');
   return knex.schema.dropTable('users');
