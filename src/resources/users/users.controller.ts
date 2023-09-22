@@ -15,6 +15,9 @@ import hasProperties from '../../errors/hasProperties';
 import hasOnlyValidProperties from '../../errors/hasOnlyValidProperties';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
 import { setTokenCookie } from '../../auth/setTokenCookie';
+import { jwtSecretExists } from '../../auth/jwtSecretExists';
+import { AppError } from '../../errors/AppError';
+import { logMethod } from '../../config/logMethod';
 
 const VALID_PROPERTIES = [
   'user_name',
@@ -24,41 +27,51 @@ const VALID_PROPERTIES = [
   'last_name',
   'password',
 ];
+const NOT_FOUND = 404;
+const BAD_REQUEST = 400;
+const INTERNAL_SERVER_ERROR = 500;
+
 const hasRequiredProperties = hasProperties('password', 'user_name');
 const hasOnlyValidUserProps = hasOnlyValidProperties(...VALID_PROPERTIES);
 
-function userExists(identifier: 'user_name' | 'user_id') {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    if (!req.params.userId && identifier === 'user_id') {
-      next({ status: 400, message: `Must enter a user_id as a param` });
-      return;
-    }
+async function userExists(req: Request, res: Response, next: NextFunction) {
+  logMethod(req, 'userExists');
+  const userId = req.params.userId;
+  const userName = req.body.data?.user_name;
 
-    if (!req.body.data?.user_name && identifier === 'user_name') {
-      next({ status: 400, message: `Must enter a user_name` });
-      return;
-    }
-
-    const whereObj =
-      identifier === 'user_id'
-        ? { user_id: req.params.userId }
-        : { user_name: req.body.data?.user_name };
-
-    const user = await read(whereObj);
-    if (user) {
-      res.locals.user = user;
-      return next();
-    }
-    next({ status: 404, message: `User cannot be found.` });
-  };
+  if (userId) {
+    await checkAndSetUser(req, { user_id: userId }, next, res);
+  } else if (userName) {
+    await checkAndSetUser(req, { user_name: userName }, next, res);
+  } else {
+    next(new AppError(BAD_REQUEST, 'Invalid user identifier provided.'));
+  }
 }
 
+async function checkAndSetUser(
+  req: Request,
+  whereObj: WhereObj,
+  next: NextFunction,
+  res: Response
+) {
+  logMethod(req, 'checkAndSetUser');
+  const user = await read(whereObj);
+  if (user) {
+    res.locals.user = user;
+    next();
+  } else {
+    next(new AppError(NOT_FOUND, 'User cannot be found.'));
+  }
+}
+
+const SALT_ROUNDS = process.env.BCRYPT_SALT_ROUNDS || 10;
+
 async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 10;
-  return bcrypt.hash(password, saltRounds);
+  return bcrypt.hash(password, SALT_ROUNDS);
 }
 
 async function createUser(req: Request, res: Response): Promise<void> {
+  logMethod(req, 'createUser');
   const password = await hashPassword(req.body.data.password);
   const newUser: User = {
     ...req.body.data,
@@ -68,8 +81,13 @@ async function createUser(req: Request, res: Response): Promise<void> {
   res.status(201).json({ data });
 }
 
+interface UserForUpdate extends User {
+  user_id: string;
+}
+
 async function updateUser(req: Request, res: Response) {
-  const updatedUser: User = {
+  logMethod(req, 'updateUser');
+  const updatedUser: UserForUpdate = {
     ...req.body.data,
     user_id: res.locals.user.user_id,
   };
@@ -79,46 +97,55 @@ async function updateUser(req: Request, res: Response) {
   }
 
   const data = await update(updatedUser);
-  res.json({ data });
+  res.json({ status: 'success', data, message: 'Updated user' });
 }
 
-async function deleteUser(_: Request, res: Response) {
+async function deleteUser(req: Request, res: Response) {
+  logMethod(req, 'deleteUser');
   const { user } = res.locals;
   await destroy(user.user_id);
   res.sendStatus(204);
 }
 
-async function listUsers(_: Request, res: Response) {
+async function listUsers(req: Request, res: Response) {
+  logMethod(req, 'listUsers');
   const data = await list();
-  res.json({ data });
+  res.json({ message: 'List users', data, status: 'success' });
 }
 
 function readUser(req: Request, res: Response) {
-  res.json({ data: res.locals.user });
+  logMethod(req, 'readUser');
+  res.json({
+    status: 'success',
+    data: res.locals.user,
+    message: 'Read user',
+  });
 }
 
-async function login(req: Request, res: Response) {
+async function login(req: Request, res: Response, next: NextFunction) {
+  console.log('made it in login');
+  logMethod(req, 'login');
   const { password: passwordEntered } = req.body.data;
   const { user_id, password: hashedPassword, user_name } = res.locals.user;
 
-  if (!passwordEntered) {
-    res.status(401).send({ message: 'Password is required.' });
-    return;
-  }
-
-  if (!user_name) {
-    res.status(400).send({ message: 'Invalid username.' });
+  if (!passwordEntered || !user_name) {
+    const message = !passwordEntered
+      ? 'Password is required.'
+      : 'Invalid username.';
+    res.status(BAD_REQUEST).send({ message });
     return;
   }
 
   const passwordIsValid = await bcrypt.compare(passwordEntered, hashedPassword);
   if (!passwordIsValid) {
-    res.status(400).send({ message: 'Invalid password.' });
+    res.status(BAD_REQUEST).send({ message: 'Invalid password.' });
     return;
   }
 
   if (!process.env.JWT_SECRET_KEY) {
-    res.status(500).send({ message: 'Internal server error.' });
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .send({ message: 'Internal server error.' });
     return;
   }
 
@@ -137,12 +164,17 @@ async function login(req: Request, res: Response) {
   const userData = { ...res.locals.user };
   delete userData.password;
 
-  res.json({ data: userData });
+  res.json({
+    status: 'success',
+    data: userData,
+    message: 'Login successful',
+  });
 }
 
 function logout(req: Request, res: Response) {
+  logMethod(req, 'logout');
   res.clearCookie('token');
-  res.json({ message: 'Successfully logged out.' });
+  res.json({ status: 'success', message: 'Successfully logged out.' });
 }
 
 export default {
@@ -151,19 +183,17 @@ export default {
     hasRequiredProperties,
     asyncErrorBoundary(createUser),
   ],
-  read: [asyncErrorBoundary(userExists('user_id')), readUser],
+  read: [asyncErrorBoundary(userExists), readUser],
   update: [
-    asyncErrorBoundary(userExists('user_id')),
+    asyncErrorBoundary(userExists),
     hasOnlyValidUserProps,
     asyncErrorBoundary(updateUser),
   ],
-  delete: [
-    asyncErrorBoundary(userExists('user_id')),
-    asyncErrorBoundary(deleteUser),
-  ],
+  delete: [asyncErrorBoundary(userExists), asyncErrorBoundary(deleteUser)],
   list: [asyncErrorBoundary(listUsers)],
   login: [
-    asyncErrorBoundary(userExists('user_name')),
+    jwtSecretExists,
+    asyncErrorBoundary(userExists),
     asyncErrorBoundary(login),
   ],
   logout: [logout],

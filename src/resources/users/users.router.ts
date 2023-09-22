@@ -2,33 +2,27 @@ import { Router } from 'express';
 import controller from './users.controller';
 import methodNotAllowed from '../../errors/methodNotAllowed';
 
+const USER_BASE_ROUTE = '/';
+const LOGIN_ROUTE = '/login';
+const LOGOUT_ROUTE = '/logout';
+const USER_ID_ROUTE = '/:userId([0-9]+)';
+const REGISTER_ROUTE = '/register';
+
 const router = Router();
 
-router
-  .route('/')
-  .get(...controller.list)
-  .all(methodNotAllowed);
+router.route(USER_BASE_ROUTE).get(controller.list).all(methodNotAllowed);
+
+router.route(LOGIN_ROUTE).post(controller.login).all(methodNotAllowed);
+
+router.route(LOGOUT_ROUTE).post(controller.logout).all(methodNotAllowed);
 
 router
-  .route('/login')
-  .post(...controller.login)
+  .route(USER_ID_ROUTE)
+  .get(controller.read)
+  .put(controller.update)
+  .delete(controller.delete)
   .all(methodNotAllowed);
 
-router
-  .route('/logout')
-  .post(...controller.logout)
-  .all(methodNotAllowed);
-
-router
-  .route('/:userId([0-9]+)')
-  .get(...controller.read)
-  .put(...controller.update)
-  .delete(...controller.delete)
-  .all(methodNotAllowed);
-
-router
-  .route('/register')
-  .post(...controller.create)
-  .all(methodNotAllowed);
+router.route(REGISTER_ROUTE).post(controller.create).all(methodNotAllowed);
 
 export default router;

@@ -1,18 +1,19 @@
-import express, {
-  Express,
-  Request,
-  Response,
-  Application,
-  NextFunction,
-} from 'express';
+import express, { Request, Response, Application, NextFunction } from 'express';
 import usersRouter from './resources/users/users.router';
 import cookieParser from 'cookie-parser';
+import pinoHttp from 'pino-http';
+import logger from './config/logger';
+
+const httpLogger = pinoHttp({ logger });
 
 import type { CustomError } from './types/types';
 
 const app: Application = express();
 
 app.use(express.json());
+
+app.use(httpLogger);
+
 app.use(cookieParser());
 
 app.use('/users', usersRouter);
