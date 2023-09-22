@@ -7,13 +7,22 @@ export interface User {
   first_name?: string;
   last_name?: string;
   password: string;
+  user_id?: string;
 }
 
-function create(user: User): Promise<User> {
+export function create(user: User): Promise<User> {
   return knex('users')
     .insert(user)
     .returning('*')
     .then((createdRecords) => createdRecords[0]);
 }
 
-export { create };
+export function read(user_id: string) {
+  return knex('users').select('*').where({ user_id }).first();
+}
+
+export function update(updatedUser: User) {
+  return knex('users')
+    .where({ user_id: updatedUser.user_id })
+    .update(updatedUser, '*');
+}
