@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import controller from './users.controller';
 import methodNotAllowed from '../../errors/methodNotAllowed';
-import { validateRequestBody } from '../../errors/validateRequestBody';
 
 const USER_BASE_ROUTE = '/';
 const LOGIN_ROUTE = '/login';
