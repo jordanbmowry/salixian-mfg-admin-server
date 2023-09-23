@@ -20,6 +20,7 @@ import { jwtSecretExists } from '../../auth/jwtSecretExists';
 import { AppError } from '../../errors/AppError';
 import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
+import { ensureAdmin } from '../../auth/ensureAdmin';
 
 const VALID_PROPERTIES = [
   'user_name',
@@ -162,8 +163,9 @@ async function login(
     return;
   }
 
+  const { role } = res.locals.user;
   const token = jwt.sign(
-    { username: user_name, id: user_id },
+    { username: user_name, id: user_id, role },
     process.env.JWT_SECRET_KEY,
     {
       expiresIn: '30d',
@@ -207,6 +209,7 @@ export default {
   ],
   delete: [
     authenticateJWT,
+    ensureAdmin,
     asyncErrorBoundary(userExists),
     asyncErrorBoundary(deleteUser),
   ],
