@@ -13,6 +13,7 @@ import {
 } from './users.service';
 import hasProperties from '../../errors/hasProperties';
 import hasOnlyValidProperties from '../../errors/hasOnlyValidProperties';
+import bodyHasDataProperty from '../../errors/bodyHasDataProperty';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
 import { setTokenCookie } from '../../auth/setTokenCookie';
 import { jwtSecretExists } from '../../auth/jwtSecretExists';
@@ -43,7 +44,7 @@ async function userExists(
   req: RequestWithUser,
   res: Response,
   next: NextFunction
-) {
+): Promise<void> {
   logMethod(req, 'userExists');
   const userId = req.params.userId;
   const userName = req.body.data?.user_name;
@@ -62,7 +63,7 @@ async function checkAndSetUser(
   whereObj: WhereObj,
   next: NextFunction,
   res: Response
-) {
+): Promise<void> {
   logMethod(req, 'checkAndSetUser');
   const user = await read(whereObj);
   if (user) {
@@ -94,14 +95,14 @@ interface UserForUpdate extends User {
   user_id: string;
 }
 
-async function updateUser(req: RequestWithUser, res: Response) {
+async function updateUser(req: RequestWithUser, res: Response): Promise<void> {
   logMethod(req, 'updateUser');
   const updatedUser: UserForUpdate = {
     ...req.body.data,
     user_id: res.locals.user.user_id,
   };
 
-  if (req.body.data?.hasOwnProperty('password')) {
+  if (Object.hasOwn(req.body.data, 'password')) {
     updatedUser.password = await hashPassword(req.body.data.password);
   }
 
@@ -109,14 +110,14 @@ async function updateUser(req: RequestWithUser, res: Response) {
   res.json({ status: 'success', data, message: 'Updated user' });
 }
 
-async function deleteUser(req: RequestWithUser, res: Response) {
+async function deleteUser(req: RequestWithUser, res: Response): Promise<void> {
   logMethod(req, 'deleteUser');
   const { user } = res.locals;
   await destroy(user.user_id);
   res.sendStatus(204);
 }
 
-async function listUsers(req: RequestWithUser, res: Response) {
+async function listUsers(req: RequestWithUser, res: Response): Promise<void> {
   logMethod(req, 'listUsers');
   const data = await list();
   res.json({ message: 'List users', data, status: 'success' });
@@ -131,8 +132,11 @@ function readUser(req: RequestWithUser, res: Response) {
   });
 }
 
-async function login(req: RequestWithUser, res: Response, next: NextFunction) {
-  console.log('made it in login');
+async function login(
+  req: RequestWithUser,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   logMethod(req, 'login');
   const { password: passwordEntered } = req.body.data;
   const { user_id, password: hashedPassword, user_name } = res.locals.user;
@@ -188,6 +192,7 @@ function logout(req: RequestWithUser, res: Response) {
 
 export default {
   create: [
+    bodyHasDataProperty,
     hasOnlyValidUserProps,
     hasRequiredProperties,
     asyncErrorBoundary(createUser),
@@ -195,8 +200,9 @@ export default {
   read: [authenticateJWT, asyncErrorBoundary(userExists), readUser],
   update: [
     authenticateJWT,
-    asyncErrorBoundary(userExists),
+    bodyHasDataProperty,
     hasOnlyValidUserProps,
+    asyncErrorBoundary(userExists),
     asyncErrorBoundary(updateUser),
   ],
   delete: [
@@ -207,6 +213,7 @@ export default {
   list: [authenticateJWT, asyncErrorBoundary(listUsers)],
   login: [
     jwtSecretExists,
+    bodyHasDataProperty,
     asyncErrorBoundary(userExists),
     asyncErrorBoundary(login),
   ],
