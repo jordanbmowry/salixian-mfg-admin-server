@@ -74,7 +74,7 @@ export async function update(updatedCustomer: Partial<Customer>) {
 
 export async function list(): Promise<Customer[]> {
   try {
-    return await knex('customers').select('*');
+    return await knex('customers').whereNull('deleted_at').select('*');
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to list customers: ${error.message}`);
