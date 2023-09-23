@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import controller from './users.controller';
 import methodNotAllowed from '../../errors/methodNotAllowed';
+import { validateRequestBody } from '../../errors/validateRequestBody';
 
 const USER_BASE_ROUTE = '/';
 const LOGIN_ROUTE = '/login';
 const LOGOUT_ROUTE = '/logout';
-const USER_ID_ROUTE = '/:userId([0-9]+)';
+const USER_ID_ROUTE = '/:userId([a-fA-F0-9-]{36}|[0-9]+)';
 const REGISTER_ROUTE = '/register';
 
 const router = Router();
