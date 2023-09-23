@@ -20,6 +20,20 @@ export interface Customer {
   deleted_at?: Date | null;
 }
 
+export async function create(customer: Customer) {
+  try {
+    return await knex('customers')
+      .insert(customer)
+      .returning('*')
+      .then((createdRecords) => createdRecords[0]);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to create customer: ${error.message}`);
+    }
+    throw new Error('Failed to create customer.');
+  }
+}
+
 export async function read(customer_id: string) {
   try {
     return knex('customers').select('*').where({ customer_id }).first();

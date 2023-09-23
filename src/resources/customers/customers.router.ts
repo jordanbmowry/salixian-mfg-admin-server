@@ -9,7 +9,11 @@ const HARD_DELETE_ROUTE = '/hard-delete/:customerId([a-fA-F0-9-]{36}|[0-9]+)';
 
 const router = Router();
 
-router.route(CUSTOMERS_BASE_ROUTE).get(controller.list).all(methodNotAllowed);
+router
+  .route(CUSTOMERS_BASE_ROUTE)
+  .get(controller.list)
+  .post(controller.create)
+  .all(methodNotAllowed);
 
 router
   .route(CUSTOMER_ID_ROUTE)

@@ -1,5 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import { list, read, softDelete, update, destroy } from './customers.service';
+import {
+  list,
+  read,
+  softDelete,
+  update,
+  destroy,
+  create,
+} from './customers.service';
 import type { Customer } from './customers.service';
 import hasProperties from '../../errors/hasProperties';
 import hasOnlyValidProperties from '../../errors/hasOnlyValidProperties';
@@ -28,13 +35,26 @@ const VALID_PROPERTIES = [
   'isDeleted',
 ];
 
-const hasOnlyValidCustomerProps = hasOnlyValidProperties(...VALID_PROPERTIES);
 const hasRequiredProperties = hasProperties(
   'first_name',
   'last_name',
   'email',
   'phone_number'
 );
+
+async function handleCreate(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const customerData: Customer = req.body?.data;
+  const createdCustomer = await create(customerData);
+  res.json({
+    status: 'success',
+    data: createdCustomer,
+    message: 'Created customer',
+  });
+}
 
 async function handleSoftDelete(
   req: Request,
@@ -101,6 +121,13 @@ async function handleHardDelete(req: Request, res: Response): Promise<void> {
 }
 
 export default {
+  create: [
+    authenticateJWT,
+    bodyHasDataProperty,
+    hasOnlyValidProperties(...VALID_PROPERTIES),
+    hasRequiredProperties,
+    asyncErrorBoundary(handleCreate),
+  ],
   list: [authenticateJWT, asyncErrorBoundary(listCustomers)],
   read: [authenticateJWT, asyncErrorBoundary(customerExists), readCustomer],
   update: [
@@ -108,7 +135,7 @@ export default {
     bodyHasDataProperty,
     asyncErrorBoundary(customerExists),
     hasRequiredProperties,
-    hasOnlyValidCustomerProps,
+    hasOnlyValidProperties(...VALID_PROPERTIES),
     asyncErrorBoundary(handleUpdate),
   ],
   softDelete: [
