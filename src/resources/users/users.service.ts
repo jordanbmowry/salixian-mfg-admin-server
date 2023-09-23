@@ -31,7 +31,7 @@ export async function read(whereObj: WhereObj): Promise<User | undefined> {
     if (error instanceof Error) {
       throw new Error(`Failed to read user: ${error.message}`);
     }
-    throw new Error('Failed to create user.');
+    throw new Error('Failed to read user.');
   }
 }
 
@@ -45,7 +45,7 @@ export async function update(updatedUser: User): Promise<User> {
     if (error instanceof Error) {
       throw new Error(`Failed to update user: ${error.message}`);
     }
-    throw new Error('Failed to create user.');
+    throw new Error('Failed to update user.');
   }
 }
 
@@ -56,7 +56,7 @@ export async function destroy(user_id: string): Promise<void> {
     if (error instanceof Error) {
       throw new Error(`Failed to delete user: ${error.message}`);
     }
-    throw new Error('Failed to create user.');
+    throw new Error('Failed to delete user.');
   }
 }
 
@@ -67,7 +67,7 @@ export async function list(): Promise<User[]> {
     if (error instanceof Error) {
       throw new Error(`Failed to list users: ${error.message}`);
     }
-    throw new Error('Failed to create user.');
+    throw new Error('Failed to list user.');
   }
 }
 
@@ -80,6 +80,6 @@ export async function updateLastLogin(user_id: string): Promise<void> {
     if (error instanceof Error) {
       throw new Error(`Failed to update last login for user: ${error.message}`);
     }
-    throw new Error('Failed to create user.');
+    throw new Error('Failed to update last login for user.');
   }
 }
