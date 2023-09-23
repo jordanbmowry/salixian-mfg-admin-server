@@ -1,6 +1,7 @@
 import express, { Request, Response, Application, NextFunction } from 'express';
 import cors from 'cors';
 import usersRouter from './resources/users/users.router';
+import customersRouter from './resources/customers/customers.router';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import logger from './config/logger';
@@ -15,6 +16,7 @@ app.use(cookieParser());
 
 // routes
 app.use('/users', usersRouter);
+app.use('/customers', customersRouter);
 
 // Not found handler
 app.use((request, response, next) => {
