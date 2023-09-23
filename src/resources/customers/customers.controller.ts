@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { list, read, softDelete, update } from './customers.service';
+import { list, read, softDelete, update, destroy } from './customers.service';
 import type { Customer } from './customers.service';
 import hasProperties from '../../errors/hasProperties';
 import hasOnlyValidProperties from '../../errors/hasOnlyValidProperties';
@@ -8,6 +8,7 @@ import bodyHasDataProperty from '../../errors/bodyHasDataProperty';
 import { AppError } from '../../errors/AppError';
 import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
+import { ensureAdmin } from '../../auth/ensureAdmin';
 
 const VALID_PROPERTIES = [
   'first_name',
@@ -40,6 +41,7 @@ async function handleSoftDelete(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  logMethod(req, 'handleSoftDelete');
   const { customerId } = req.params;
   await softDelete(customerId);
   res.status(200).json({ message: 'Customer soft deleted successfully.' });
@@ -50,6 +52,7 @@ async function handleUpdate(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  logMethod(req, 'handleUpdate');
   const updateData: Partial<Customer> = req.body?.data ?? {};
 
   const updatedCustomer = {
@@ -90,6 +93,13 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
   res.json({ message: 'List customers', data, status: 'success' });
 }
 
+async function handleHardDelete(req: Request, res: Response): Promise<void> {
+  const { customer } = res.locals;
+  logMethod(req, 'handleHardDelete');
+  await destroy(customer.customer_id);
+  res.sendStatus(204);
+}
+
 export default {
   list: [authenticateJWT, asyncErrorBoundary(listCustomers)],
   read: [authenticateJWT, asyncErrorBoundary(customerExists), readCustomer],
@@ -105,5 +115,11 @@ export default {
     authenticateJWT,
     asyncErrorBoundary(customerExists),
     asyncErrorBoundary(handleSoftDelete),
+  ],
+  hardDelete: [
+    authenticateJWT,
+    ensureAdmin,
+    asyncErrorBoundary(customerExists),
+    handleHardDelete,
   ],
 };

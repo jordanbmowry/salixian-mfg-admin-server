@@ -68,3 +68,16 @@ export async function list(): Promise<Customer[]> {
     throw new Error('Failed to list customers.');
   }
 }
+
+export async function destroy(customer_id: string) {
+  try {
+    await knex('customers').where({ customer_id }).del();
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(
+        `Failed to delete customer ${customer_id}: ${error.message}`
+      );
+    }
+    throw new Error(`Failed to delete customer ${customer_id}.`);
+  }
+}
