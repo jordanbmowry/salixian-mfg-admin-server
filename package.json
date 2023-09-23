@@ -9,7 +9,9 @@
     "dev": "nodemon src/server.ts",
     "migrate:make": "knex migrate:make --knexfile src/knexfile.ts",
     "migrate:latest": "knex migrate:latest --knexfile src/knexfile.ts",
-    "migrate:rollback": "knex migrate:rollback --knexfile src/knexfile.ts"
+    "migrate:rollback": "knex migrate:rollback --knexfile src/knexfile.ts",
+    "seed:make": "knex seed:make --knexfile src/knexfile.ts",
+    "seed:run": "knex seed:run --knexfile src/knexfile.ts"
   },
   "author": "Jordan Mowry",
   "license": "ISC",
