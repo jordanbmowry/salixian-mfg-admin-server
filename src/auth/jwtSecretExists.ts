@@ -10,7 +10,7 @@ export function jwtSecretExists(
   if (!process.env.JWT_SECRET_KEY) {
     res
       .status(INTERNAL_SERVER_ERROR)
-      .send({ message: 'Internal server error.' });
+      .send({ message: 'The application requires a JWT_SECRET_KEY env' });
     return;
   }
   next();
