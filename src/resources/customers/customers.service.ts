@@ -95,3 +95,14 @@ export async function destroy(customer_id: string) {
     throw new Error(`Failed to delete customer ${customer_id}.`);
   }
 }
+
+export async function fetchOrdersByCustomerId(customer_id: string) {
+  try {
+    return knex('orders').select('*').where({ customer_id });
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to read orders: ${error.message}`);
+    }
+    throw new Error('Failed to read orders.');
+  }
+}

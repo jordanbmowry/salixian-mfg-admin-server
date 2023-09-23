@@ -6,6 +6,8 @@ const CUSTOMERS_BASE_ROUTE = '/';
 const CUSTOMER_ID_ROUTE = '/:customerId([a-fA-F0-9-]{36}|[0-9]+)';
 const SOFT_DELETE_ROUTE = '/soft-delete/:customerId([a-fA-F0-9-]{36}|[0-9]+)';
 const HARD_DELETE_ROUTE = '/hard-delete/:customerId([a-fA-F0-9-]{36}|[0-9]+)';
+const ORDERS_FOR_CUSTOMER_ROUTE =
+  '/:customerId([a-fA-F0-9-]{36}|[0-9]+)/orders';
 
 const router = Router();
 
@@ -29,6 +31,11 @@ router
 router
   .route(HARD_DELETE_ROUTE)
   .delete(controller.hardDelete)
+  .all(methodNotAllowed);
+
+router
+  .route(ORDERS_FOR_CUSTOMER_ROUTE)
+  .get(controller.listCustomerWithOrders)
   .all(methodNotAllowed);
 
 export default router;

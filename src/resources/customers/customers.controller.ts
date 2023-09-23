@@ -6,6 +6,7 @@ import {
   update,
   destroy,
   create,
+  fetchOrdersByCustomerId,
 } from './customers.service';
 import type { Customer } from './customers.service';
 import hasProperties from '../../errors/hasProperties';
@@ -49,7 +50,7 @@ async function handleCreate(
 ): Promise<void> {
   const customerData: Customer = req.body?.data;
   const createdCustomer = await create(customerData);
-  res.json({
+  res.status(201).json({
     status: 'success',
     data: createdCustomer,
     message: 'Created customer',
@@ -120,6 +121,24 @@ async function handleHardDelete(req: Request, res: Response): Promise<void> {
   res.sendStatus(204);
 }
 
+async function handleGetCustomerWithOrders(
+  req: Request,
+  res: Response
+): Promise<void> {
+  const { customer } = res.locals;
+  logMethod(req, 'handleGetCustomerWithOrders');
+  const orders = await fetchOrdersByCustomerId(customer.customer_id);
+  console.log;
+  res.json({
+    status: 'success',
+    data: {
+      orders,
+      customer,
+    },
+    message: `customer_id ${customer.customer_id} and orders inner join`,
+  });
+}
+
 export default {
   create: [
     authenticateJWT,
@@ -148,5 +167,10 @@ export default {
     ensureAdmin,
     asyncErrorBoundary(customerExists),
     handleHardDelete,
+  ],
+  listCustomerWithOrders: [
+    authenticateJWT,
+    asyncErrorBoundary(customerExists),
+    asyncErrorBoundary(handleGetCustomerWithOrders),
   ],
 };
