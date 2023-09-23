@@ -19,7 +19,7 @@ export async function up(knex: Knex): Promise<void> {
 
   // Add trigger to update 'updated_at' column on each update
   await knex.raw(`
-    CREATE OR REPLACE FUNCTION update_timestamp()
+    CREATE OR REPLACE FUNCTION update_user_timestamp()
     RETURNS TRIGGER AS $$
     BEGIN
       NEW.updated_at = CURRENT_TIMESTAMP;
@@ -28,19 +28,19 @@ export async function up(knex: Knex): Promise<void> {
     $$ LANGUAGE plpgsql;
   `);
 
-  // Create PostgreSQL trigger 'update_timestamp' if it doesn't exist
+  // Create PostgreSQL trigger 'update_user_timestamp' if it doesn't exist
   await knex.raw(`
-    CREATE TRIGGER update_timestamp
+    CREATE TRIGGER update_user_timestamp
     BEFORE UPDATE
     ON users
     FOR EACH ROW
-    EXECUTE FUNCTION update_timestamp();
+    EXECUTE FUNCTION update_user_timestamp();
   `);
 }
 
 export async function down(knex: Knex): Promise<void> {
   // Drop the trigger, the function, and the table
-  await knex.raw('DROP TRIGGER IF EXISTS update_timestamp ON users;');
-  await knex.raw('DROP FUNCTION IF EXISTS update_timestamp;');
+  await knex.raw('DROP TRIGGER IF EXISTS update_user_timestamp ON users;');
+  await knex.raw('DROP FUNCTION IF EXISTS update_user_timestamp;');
   return knex.schema.dropTable('users');
 }
