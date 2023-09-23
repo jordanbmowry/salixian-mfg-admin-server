@@ -1,6 +1,6 @@
 import knex from '../../db/connection';
 
-interface Customer {
+export interface Customer {
   customer_id: string;
   first_name: string;
   last_name: string;
@@ -18,6 +18,44 @@ interface Customer {
   created_at: Date;
   updated_at: Date;
   deleted_at?: Date | null;
+}
+
+export async function read(customer_id: string) {
+  try {
+    return knex('customers').select('*').where({ customer_id }).first();
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to read customer: ${error.message}`);
+    }
+    throw new Error('Failed to read customer.');
+  }
+}
+
+export async function softDelete(customer_id: string): Promise<void> {
+  try {
+    await knex('customers').where({ customer_id }).update({
+      deleted_at: knex.fn.now(),
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to soft delete customer: ${error.message}`);
+    }
+    throw new Error('Failed to soft delete customer.');
+  }
+}
+
+export async function update(updatedCustomer: Partial<Customer>) {
+  try {
+    return await knex('customers')
+      .select('*')
+      .where({ customer_id: updatedCustomer.customer_id })
+      .update(updatedCustomer, '*');
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to update customer: ${error.message}`);
+    }
+    throw new Error('Failed to update customer.');
+  }
 }
 
 export async function list(): Promise<Customer[]> {
