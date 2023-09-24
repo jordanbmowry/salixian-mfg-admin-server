@@ -1,5 +1,5 @@
 import knex from '../../db/connection';
-import type { Order } from '../../types/types';
+import type { Order, CustomOrderCustomer } from '../../types/types';
 
 export async function list(): Promise<Order[]> {
   try {
@@ -12,7 +12,7 @@ export async function list(): Promise<Order[]> {
   }
 }
 
-export async function read(order_id: string) {
+export async function read(order_id: string): Promise<Order> {
   try {
     return knex('orders').select('*').where({ order_id }).first();
   } catch (error) {
@@ -20,5 +20,48 @@ export async function read(order_id: string) {
       throw new Error(`Failed to read order ${order_id}: ${error.message}`);
     }
     throw new Error(`Failed to read order ${order_id}.`);
+  }
+}
+
+export async function listOrdersWithCustomers(): Promise<
+  CustomOrderCustomer[]
+> {
+  try {
+    return await knex('orders as o')
+      .join('customers as c', 'o.customer_id', 'c.customer_id')
+      .select([
+        'o.order_id',
+        'o.order_date',
+        'o.order_status',
+        'o.payment_status',
+        'o.created_at as order_created_at',
+        'c.first_name',
+        'c.last_name',
+        'c.customer_id',
+        'c.email',
+        'c.phone_number',
+        'c.created_at as customer_created_at',
+        'c.updated_at as customer_updated_at',
+      ])
+      .whereNull('c.deleted_at');
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to list orders with customers: ${error.message}`);
+    }
+    throw new Error('Failed to list orders with customers.');
+  }
+}
+
+export async function create(order: Partial<Order>) {
+  try {
+    return await knex('customers')
+      .insert(order)
+      .returning('*')
+      .then((createdRecords) => createdRecords[0]);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to create order: ${error.message}`);
+    }
+    throw new Error('Failed to create order.');
   }
 }

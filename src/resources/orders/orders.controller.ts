@@ -1,31 +1,33 @@
 import { Request, Response, NextFunction } from 'express';
-import { list, read } from './orders.service';
-import hasProperties from '../../errors/hasProperties';
-import hasOnlyValidProperties from '../../errors/hasOnlyValidProperties';
+import { list, read, create, listOrdersWithCustomers } from './orders.service';
+import { customerExists } from '../customers/customers.controller';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
 import bodyHasDataProperty from '../../errors/bodyHasDataProperty';
 import { AppError } from '../../errors/AppError';
 import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
-import { ensureAdmin } from '../../auth/ensureAdmin';
+import { Order } from '../../types/types';
+import { validateDataInBody } from '../../errors/validateDataInBody';
+import Joi from 'joi';
 
-const VALID_ORDER_PROPERTIES = [
-  'order_id',
-  'order_date',
-  'order_description',
-  'customer_cost',
-  'input_expenses',
-  'taxes_fees',
-  'shipping_cost',
-  'total_write_off',
-  'profit',
-  'notes',
-  'order_status',
-  'payment_status',
-  'customer_id',
-  'created_at',
-  'updated_at',
-];
+const orderSchema = Joi.object({
+  order_date: Joi.date().required(),
+  order_description: Joi.string().allow(null, ''),
+  customer_cost: Joi.number().required(),
+  input_expenses: Joi.number(),
+  taxes_fees: Joi.number(),
+  shipping_cost: Joi.number(),
+  total_write_off: Joi.number(),
+  profit: Joi.number(),
+  notes: Joi.string().allow(null, ''),
+  order_status: Joi.string()
+    .valid('pending', 'in progress', 'complete', 'canceled')
+    .required(),
+  payment_status: Joi.string()
+    .valid('not paid', 'partially paid', 'fully paid')
+    .required(),
+  customer_id: Joi.string().allow(null, '').required(),
+}).unknown(false);
 
 async function orderExists(
   req: Request,
@@ -56,7 +58,41 @@ function readOrder(req: Request, res: Response) {
   });
 }
 
+async function fetchOrdersWithCustomers(
+  req: Request,
+  res: Response
+): Promise<void> {
+  logMethod(req, 'fetchOrdersWithCustomers');
+  const data = await listOrdersWithCustomers();
+  res.json({ message: 'List orders with customers', data, status: 'success' });
+}
+
+async function handleCreate(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const orderData: Partial<Order> = req.body?.data;
+  const createdOrder = await create(orderData);
+  res.status(201).json({
+    status: 'success',
+    data: createdOrder,
+    message: 'Created order',
+  });
+}
+
 export default {
   list: [authenticateJWT, asyncErrorBoundary(listOrders)],
   read: [authenticateJWT, asyncErrorBoundary(orderExists), readOrder],
+  listOrdersWithCustomers: [
+    authenticateJWT,
+    asyncErrorBoundary(fetchOrdersWithCustomers),
+  ],
+  create: [
+    authenticateJWT,
+    bodyHasDataProperty,
+    validateDataInBody(orderSchema),
+    asyncErrorBoundary(customerExists),
+    asyncErrorBoundary(handleCreate),
+  ],
 };
