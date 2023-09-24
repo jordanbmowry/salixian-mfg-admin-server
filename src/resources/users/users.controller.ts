@@ -198,6 +198,8 @@ function logout(req: RequestWithUser, res: Response) {
 
 export default {
   create: [
+    authenticateJWT,
+    ensureAdmin,
     bodyHasDataProperty,
     hasOnlyValidUserProps,
     hasRequiredProperties,
