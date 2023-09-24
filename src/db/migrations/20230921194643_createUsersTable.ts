@@ -4,7 +4,7 @@ export async function up(knex: Knex): Promise<void> {
   // Create the 'users' table
   await knex.schema.createTable('users', (table) => {
     table.uuid('user_id').primary().defaultTo(knex.raw('uuid_generate_v4()')); // use UUID v4 as primary key
-    table.string('user_name').notNullable().unique(); // Only 'user_name' is used
+    table.string('email').notNullable().unique();
     table.string('role').notNullable().defaultTo('user');
     table.string('first_name');
     table.string('last_name');

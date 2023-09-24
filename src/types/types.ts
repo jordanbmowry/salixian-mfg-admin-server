@@ -4,8 +4,7 @@ export interface CustomError extends Error {
 }
 
 export interface User {
-  user_name: string;
-  email?: string;
+  email: string;
   role?: string;
   first_name?: string;
   last_name?: string;
@@ -49,4 +48,19 @@ export interface Customer {
   created_at: Date;
   updated_at: Date;
   deleted_at?: Date | null;
+}
+
+export interface CustomOrderCustomer {
+  order_id: string;
+  order_date: string;
+  order_status: string;
+  payment_status: string;
+  order_created_at: string;
+  first_name: string;
+  last_name: string;
+  customer_id: string;
+  email: string;
+  phone_number: string;
+  customer_created_at: string;
+  customer_updated_at: string;
 }

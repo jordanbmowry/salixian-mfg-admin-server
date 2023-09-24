@@ -10,8 +10,6 @@ import {
   list,
   updateLastLogin,
 } from './users.service';
-import hasProperties from '../../errors/hasProperties';
-import hasOnlyValidProperties from '../../errors/hasOnlyValidProperties';
 import bodyHasDataProperty from '../../errors/bodyHasDataProperty';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
 import { setTokenCookie } from '../../auth/setTokenCookie';
@@ -21,25 +19,23 @@ import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
 import { ensureAdmin } from '../../auth/ensureAdmin';
 import type { User } from '../../types/types';
+import Joi from 'joi';
 
-const VALID_PROPERTIES = [
-  'user_name',
-  'email',
-  'role',
-  'first_name',
-  'last_name',
-  'password',
-];
+const userSchema = Joi.object({
+  email: Joi.string().email().required(),
+  role: Joi.string().allow(null, ''),
+  first_name: Joi.string().allow(null, ''),
+  last_name: Joi.string().allow(null, ''),
+  password: Joi.string().required(),
+  user_id: Joi.string().allow(null, ''),
+}).unknown(false);
+
 const NOT_FOUND = 404;
 const BAD_REQUEST = 400;
 const INTERNAL_SERVER_ERROR = 500;
-
 interface RequestWithUser extends Request {
   user?: Record<string, any>;
 }
-
-const hasRequiredProperties = hasProperties('password', 'user_name');
-const hasOnlyValidUserProps = hasOnlyValidProperties(...VALID_PROPERTIES);
 
 async function userExists(
   req: RequestWithUser,
@@ -48,14 +44,14 @@ async function userExists(
 ): Promise<void> {
   logMethod(req, 'userExists');
   const userId = req.params.userId;
-  const userName = req.body.data?.user_name;
+  const email = req.body.data?.email;
 
   let whereObj: WhereObj | undefined;
 
   if (userId) {
     whereObj = { user_id: userId };
-  } else if (userName) {
-    whereObj = { user_name: userName };
+  } else if (email) {
+    whereObj = { email };
   }
 
   if (whereObj) {
@@ -82,7 +78,7 @@ async function checkAndSetUser(
     if ('user_id' in whereObj) {
       userIndentification = whereObj.user_id;
     } else {
-      userIndentification = whereObj.user_name;
+      userIndentification = whereObj.email;
     }
 
     next(
@@ -93,12 +89,25 @@ async function checkAndSetUser(
 
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
 
-async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, SALT_ROUNDS);
+async function hashPassword(password: string) {
+  try {
+    return bcrypt.hash(password, SALT_ROUNDS);
+  } catch (error) {
+    throw new AppError(
+      INTERNAL_SERVER_ERROR,
+      'There was a problem hashing password'
+    );
+  }
 }
 
 async function createUser(req: RequestWithUser, res: Response): Promise<void> {
   logMethod(req, 'createUser');
+
+  const validation = userSchema.validate(req.body.data);
+  if (validation.error) {
+    throw new AppError(BAD_REQUEST, validation.error.message);
+  }
+
   const password = await hashPassword(req.body.data.password);
   const newUser: User = {
     ...req.body.data,
@@ -114,6 +123,12 @@ interface UserForUpdate extends User {
 
 async function updateUser(req: RequestWithUser, res: Response): Promise<void> {
   logMethod(req, 'updateUser');
+
+  const validation = userSchema.validate(req.body.data);
+  if (validation.error) {
+    throw new AppError(BAD_REQUEST, validation.error.message);
+  }
+
   const updatedUser: UserForUpdate = {
     ...req.body.data,
     user_id: res.locals.user.user_id,
@@ -156,9 +171,9 @@ async function login(
 ): Promise<void> {
   logMethod(req, 'login');
   const { password: passwordEntered } = req.body.data;
-  const { user_id, password: hashedPassword, user_name } = res.locals.user;
+  const { user_id, password: hashedPassword, email } = res.locals.user;
 
-  if (!passwordEntered || !user_name) {
+  if (!passwordEntered || !email) {
     const message = !passwordEntered
       ? 'Password is required.'
       : 'Invalid username.';
@@ -183,14 +198,10 @@ async function login(
   const privateKey = Buffer.from(process.env.JWT_SECRET_KEY, 'base64').toString(
     'utf8'
   );
-  const token = jwt.sign(
-    { username: user_name, id: user_id, role },
-    privateKey,
-    {
-      algorithm: 'RS256',
-      expiresIn: '30d',
-    }
-  );
+  const token = jwt.sign({ username: email, id: user_id, role }, privateKey, {
+    algorithm: 'RS256',
+    expiresIn: '30d',
+  });
 
   setTokenCookie(res, token);
 
@@ -217,15 +228,12 @@ export default {
     authenticateJWT,
     ensureAdmin,
     bodyHasDataProperty,
-    hasOnlyValidUserProps,
-    hasRequiredProperties,
     asyncErrorBoundary(createUser),
   ],
   read: [authenticateJWT, asyncErrorBoundary(userExists), readUser],
   update: [
     authenticateJWT,
     bodyHasDataProperty,
-    hasOnlyValidUserProps,
     asyncErrorBoundary(userExists),
     asyncErrorBoundary(updateUser),
   ],

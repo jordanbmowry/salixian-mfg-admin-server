@@ -8,40 +8,35 @@ import {
   create,
   fetchOrdersByCustomerId,
 } from './customers.service';
-import hasProperties from '../../errors/hasProperties';
-import hasOnlyValidProperties from '../../errors/hasOnlyValidProperties';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
 import bodyHasDataProperty from '../../errors/bodyHasDataProperty';
 import { AppError } from '../../errors/AppError';
 import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
 import { ensureAdmin } from '../../auth/ensureAdmin';
+import { validateDataInBody } from '../../errors/validateDataInBody';
+import Joi from 'joi';
 import type { Customer } from '../../types/types';
 
-const VALID_PROPERTIES = [
-  'first_name',
-  'last_name',
-  'customer_id',
-  'email',
-  'phone_number',
-  'shipping_address',
-  'shipping_city',
-  'shipping_state',
-  'shipping_zip',
-  'billing_address',
-  'billing_city',
-  'billing_state',
-  'billing_zip',
-  'notes',
-  'isDeleted',
-];
-
-const hasRequiredProperties = hasProperties(
-  'first_name',
-  'last_name',
-  'email',
-  'phone_number'
-);
+const customerSchema = Joi.object({
+  customer_id: Joi.string(),
+  first_name: Joi.string().required(),
+  last_name: Joi.string().required(),
+  email: Joi.string().email().required(),
+  phone_number: Joi.string().required(),
+  shipping_address: Joi.string().allow(null, ''),
+  shipping_city: Joi.string().allow(null, ''),
+  shipping_state: Joi.string().allow(null, ''),
+  shipping_zip: Joi.string().allow(null, ''),
+  billing_address: Joi.string().allow(null, ''),
+  billing_city: Joi.string().allow(null, ''),
+  billing_state: Joi.string().allow(null, ''),
+  billing_zip: Joi.string().allow(null, ''),
+  notes: Joi.string().allow(null, ''),
+  created_at: Joi.date(),
+  updated_at: Joi.date(),
+  deleted_at: Joi.date().allow(null),
+}).unknown(false);
 
 async function handleCreate(
   req: Request,
@@ -85,13 +80,20 @@ async function handleUpdate(
   res.json({ status: 'success', data, message: 'Updated customer' });
 }
 
-async function customerExists(
+export async function customerExists(
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   logMethod(req, 'customerExists');
-  const customer = await read(req.params.customerId);
+  const customerId = req.params.customerId ?? req.body.data.customer_id;
+
+  if (!customerId) {
+    res.status(400).send({ error: 'Customer ID is required' });
+    return;
+  }
+
+  const customer = await read(customerId);
   if (customer) {
     res.locals.customer = customer;
     return next();
@@ -128,7 +130,7 @@ async function handleGetCustomerWithOrders(
   const { customer } = res.locals;
   logMethod(req, 'handleGetCustomerWithOrders');
   const orders = await fetchOrdersByCustomerId(customer.customer_id);
-  console.log;
+
   res.json({
     status: 'success',
     data: {
@@ -143,8 +145,7 @@ export default {
   create: [
     authenticateJWT,
     bodyHasDataProperty,
-    hasOnlyValidProperties(...VALID_PROPERTIES),
-    hasRequiredProperties,
+    validateDataInBody(customerSchema),
     asyncErrorBoundary(handleCreate),
   ],
   list: [authenticateJWT, asyncErrorBoundary(listCustomers)],
@@ -153,8 +154,7 @@ export default {
     authenticateJWT,
     bodyHasDataProperty,
     asyncErrorBoundary(customerExists),
-    hasRequiredProperties,
-    hasOnlyValidProperties(...VALID_PROPERTIES),
+    validateDataInBody(customerSchema),
     asyncErrorBoundary(handleUpdate),
   ],
   softDelete: [

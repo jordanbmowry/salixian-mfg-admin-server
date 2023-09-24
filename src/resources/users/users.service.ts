@@ -13,7 +13,7 @@ export async function create(user: User): Promise<User> {
   }
 }
 
-export type WhereObj = { user_id: string } | { user_name: string };
+export type WhereObj = { user_id: string } | { email: string };
 
 export async function read(whereObj?: WhereObj): Promise<User | undefined> {
   if (!whereObj) {
