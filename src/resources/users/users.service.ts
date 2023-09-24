@@ -15,7 +15,11 @@ export async function create(user: User): Promise<User> {
 
 export type WhereObj = { user_id: string } | { user_name: string };
 
-export async function read(whereObj: WhereObj): Promise<User | undefined> {
+export async function read(whereObj?: WhereObj): Promise<User | undefined> {
+  if (!whereObj) {
+    throw new Error('Invalid where object provided.');
+  }
+
   try {
     return await knex('users').select('*').where(whereObj).first();
   } catch (error) {

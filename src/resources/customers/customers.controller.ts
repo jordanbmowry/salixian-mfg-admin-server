@@ -96,7 +96,7 @@ async function customerExists(
     res.locals.customer = customer;
     return next();
   }
-  next(new AppError(404, `Customer cannot be found.`));
+  next(new AppError(404, `Customer ${req.params.customerId} cannot be found.`));
 }
 
 function readCustomer(req: Request, res: Response) {

@@ -20,9 +20,11 @@ export async function read(customer_id: string) {
     return knex('customers').select('*').where({ customer_id }).first();
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Failed to read customer: ${error.message}`);
+      throw new Error(
+        `Failed to read customer ${customer_id}: ${error.message}`
+      );
     }
-    throw new Error('Failed to read customer.');
+    throw new Error(`Failed to read customer ${customer_id}.`);
   }
 }
 

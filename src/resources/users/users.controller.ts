@@ -50,10 +50,16 @@ async function userExists(
   const userId = req.params.userId;
   const userName = req.body.data?.user_name;
 
+  let whereObj: WhereObj | undefined;
+
   if (userId) {
-    await checkAndSetUser(req, { user_id: userId }, next, res);
+    whereObj = { user_id: userId };
   } else if (userName) {
-    await checkAndSetUser(req, { user_name: userName }, next, res);
+    whereObj = { user_name: userName };
+  }
+
+  if (whereObj) {
+    await checkAndSetUser(req, whereObj, next, res);
   } else {
     next(new AppError(BAD_REQUEST, 'Invalid user identifier provided.'));
   }
@@ -71,7 +77,17 @@ async function checkAndSetUser(
     res.locals.user = user;
     next();
   } else {
-    next(new AppError(NOT_FOUND, 'User cannot be found.'));
+    let userIndentification;
+
+    if ('user_id' in whereObj) {
+      userIndentification = whereObj.user_id;
+    } else {
+      userIndentification = whereObj.user_name;
+    }
+
+    next(
+      new AppError(NOT_FOUND, `User ${userIndentification} cannot be found.`)
+    );
   }
 }
 
