@@ -164,10 +164,14 @@ async function login(
   }
 
   const { role } = res.locals.user;
+  const privateKey = Buffer.from(process.env.JWT_SECRET_KEY, 'base64').toString(
+    'utf8'
+  );
   const token = jwt.sign(
     { username: user_name, id: user_id, role },
-    process.env.JWT_SECRET_KEY,
+    privateKey,
     {
+      algorithm: 'RS256',
       expiresIn: '30d',
     }
   );
