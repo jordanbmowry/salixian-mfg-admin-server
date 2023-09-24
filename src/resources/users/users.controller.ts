@@ -6,7 +6,6 @@ import {
   read,
   update,
   destroy,
-  User,
   WhereObj,
   list,
   updateLastLogin,
@@ -21,6 +20,7 @@ import { AppError } from '../../errors/AppError';
 import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
 import { ensureAdmin } from '../../auth/ensureAdmin';
+import type { User } from '../../types/types';
 
 const VALID_PROPERTIES = [
   'user_name',

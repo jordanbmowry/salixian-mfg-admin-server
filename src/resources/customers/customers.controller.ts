@@ -8,7 +8,6 @@ import {
   create,
   fetchOrdersByCustomerId,
 } from './customers.service';
-import type { Customer } from './customers.service';
 import hasProperties from '../../errors/hasProperties';
 import hasOnlyValidProperties from '../../errors/hasOnlyValidProperties';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
@@ -17,6 +16,7 @@ import { AppError } from '../../errors/AppError';
 import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
 import { ensureAdmin } from '../../auth/ensureAdmin';
+import type { Customer } from '../../types/types';
 
 const VALID_PROPERTIES = [
   'first_name',

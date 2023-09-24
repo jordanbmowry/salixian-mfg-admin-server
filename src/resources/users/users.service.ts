@@ -1,14 +1,5 @@
 import knex from '../../db/connection';
-
-export interface User {
-  user_name: string;
-  email?: string;
-  role?: string;
-  first_name?: string;
-  last_name?: string;
-  password: string;
-  user_id?: string;
-}
+import type { User } from '../../types/types';
 
 export async function create(user: User): Promise<User> {
   try {

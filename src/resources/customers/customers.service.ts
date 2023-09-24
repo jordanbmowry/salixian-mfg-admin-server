@@ -1,24 +1,5 @@
 import knex from '../../db/connection';
-
-export interface Customer {
-  customer_id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone_number: string;
-  shipping_address: string;
-  shipping_city: string;
-  shipping_state: string;
-  shipping_zip: string;
-  billing_address: string;
-  billing_city: string;
-  billing_state: string;
-  billing_zip: string;
-  notes: string;
-  created_at: Date;
-  updated_at: Date;
-  deleted_at?: Date | null;
-}
+import type { Customer } from '../../types/types';
 
 export async function create(customer: Customer) {
   try {
