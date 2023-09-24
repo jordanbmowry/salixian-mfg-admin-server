@@ -9,6 +9,6 @@ const router = Router();
 
 router.route(ORDERS_BASE_ROUTE).get(controller.list).all(methodNotAllowed);
 
-router.route(ORDER_ID_ROUTE).all(methodNotAllowed);
+router.route(ORDER_ID_ROUTE).get(controller.read).all(methodNotAllowed);
 
 export default router;

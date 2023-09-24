@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { list } from './orders.service';
+import { list, read } from './orders.service';
 import hasProperties from '../../errors/hasProperties';
 import hasOnlyValidProperties from '../../errors/hasOnlyValidProperties';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
@@ -27,12 +27,36 @@ const VALID_ORDER_PROPERTIES = [
   'updated_at',
 ];
 
+async function orderExists(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  logMethod(req, 'orderExists');
+  const order = await read(req.params.orderId);
+  if (order) {
+    res.locals.order = order;
+    return next();
+  }
+  next(new AppError(404, `Order ${req.params.orderId} cannot be found.`));
+}
+
 async function listOrders(req: Request, res: Response): Promise<void> {
   logMethod(req, 'listOrders');
   const data = await list();
   res.json({ message: 'List orders', data, status: 'success' });
 }
 
+function readOrder(req: Request, res: Response) {
+  logMethod(req, 'readOrder');
+  res.json({
+    status: 'success',
+    data: res.locals.order,
+    message: 'Read order',
+  });
+}
+
 export default {
   list: [authenticateJWT, asyncErrorBoundary(listOrders)],
+  read: [authenticateJWT, asyncErrorBoundary(orderExists), readOrder],
 };
