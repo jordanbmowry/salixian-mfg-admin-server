@@ -1,5 +1,6 @@
 import express, { Request, Response, Application, NextFunction } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import usersRouter from './resources/users/users.router';
 import customersRouter from './resources/customers/customers.router';
 import ordersRouter from './resources/orders/orders.router';
@@ -11,6 +12,7 @@ import type { CustomError } from './types/types';
 const app: Application = express();
 
 app.use(cors());
+app.use(helmet());
 app.use(express.json());
 app.use(pinoHttp({ logger }));
 app.use(cookieParser());
