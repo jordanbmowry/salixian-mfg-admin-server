@@ -15,8 +15,12 @@ import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
 import { ensureAdmin } from '../../auth/ensureAdmin';
 import { validateDataInBody } from '../../errors/validateDataInBody';
+import { sanitizeRequestBody } from '../../utils/sanitizeMiddleware';
 import Joi from 'joi';
 import type { Customer } from '../../types/types';
+
+const NOT_FOUND = 404;
+const BAD_REQUEST = 400;
 
 const customerSchema = Joi.object({
   customer_id: Joi.string(),
@@ -89,7 +93,7 @@ export async function customerExists(
   const customerId = req.params.customerId ?? req.body.data.customer_id;
 
   if (!customerId) {
-    res.status(400).send({ error: 'Customer ID is required' });
+    res.status(BAD_REQUEST).send({ error: 'Customer ID is required' });
     return;
   }
 
@@ -98,7 +102,12 @@ export async function customerExists(
     res.locals.customer = customer;
     return next();
   }
-  next(new AppError(404, `Customer ${req.params.customerId} cannot be found.`));
+  next(
+    new AppError(
+      NOT_FOUND,
+      `Customer ${req.params.customerId} cannot be found.`
+    )
+  );
 }
 
 function readCustomer(req: Request, res: Response) {
@@ -144,6 +153,7 @@ async function handleGetCustomerWithOrders(
 export default {
   create: [
     authenticateJWT,
+    sanitizeRequestBody,
     bodyHasDataProperty,
     validateDataInBody(customerSchema),
     asyncErrorBoundary(handleCreate),
@@ -152,6 +162,7 @@ export default {
   read: [authenticateJWT, asyncErrorBoundary(customerExists), readCustomer],
   update: [
     authenticateJWT,
+    sanitizeRequestBody,
     bodyHasDataProperty,
     asyncErrorBoundary(customerExists),
     validateDataInBody(customerSchema),

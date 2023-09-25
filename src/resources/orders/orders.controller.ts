@@ -14,7 +14,11 @@ import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
 import { Order } from '../../types/types';
 import { validateDataInBody } from '../../errors/validateDataInBody';
+import { sanitizeRequestBody } from '../../utils/sanitizeMiddleware';
 import Joi from 'joi';
+
+const NOT_FOUND = 404;
+const BAD_REQUEST = 400;
 
 const orderSchema = Joi.object({
   order_date: Joi.date().required(),
@@ -46,7 +50,9 @@ async function orderExists(
     res.locals.order = order;
     return next();
   }
-  next(new AppError(404, `Order ${req.params.orderId} cannot be found.`));
+  next(
+    new AppError(BAD_REQUEST, `Order ${req.params.orderId} cannot be found.`)
+  );
 }
 
 async function listOrders(req: Request, res: Response): Promise<void> {
@@ -112,6 +118,7 @@ export default {
   ],
   create: [
     authenticateJWT,
+    sanitizeRequestBody,
     bodyHasDataProperty,
     validateDataInBody(orderSchema),
     asyncErrorBoundary(customerExists),
@@ -119,6 +126,7 @@ export default {
   ],
   update: [
     authenticateJWT,
+    sanitizeRequestBody,
     bodyHasDataProperty,
     asyncErrorBoundary(orderExists),
     validateDataInBody(orderSchema),
