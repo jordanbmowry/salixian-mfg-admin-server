@@ -7,6 +7,7 @@ import ordersRouter from './resources/orders/orders.router';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import logger from './config/logger';
+import { AppError } from './errors/AppError';
 import type { CustomError } from './types/types';
 
 const app: Application = express();
@@ -25,7 +26,7 @@ app.use('/orders', ordersRouter);
 
 // Not found handler
 app.use((request, response, next) => {
-  next(`Not found: ${request.originalUrl}`);
+  next(new AppError(404, `Not found: ${request.originalUrl}`));
 });
 
 // Error handler
@@ -36,7 +37,7 @@ app.use(
     response: Response,
     next: NextFunction
   ) => {
-    console.error(error);
+    logger.error(error);
     const { status = 500, message = 'Something went wrong!' } = error;
 
     response.status(status).json({ error: message });
