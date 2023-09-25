@@ -64,7 +64,9 @@ async function handleSoftDelete(
   logMethod(req, 'handleSoftDelete');
   const { customerId } = req.params;
   await softDelete(customerId);
-  res.status(200).json({ message: 'Customer soft deleted successfully.' });
+  res
+    .status(200)
+    .json({ message: `Customer ${customerId} soft deleted successfully.` });
 }
 
 async function handleUpdate(

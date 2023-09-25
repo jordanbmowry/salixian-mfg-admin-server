@@ -35,9 +35,11 @@ export async function softDelete(customer_id: string): Promise<void> {
     });
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Failed to soft delete customer: ${error.message}`);
+      throw new Error(
+        `Failed to soft delete customer ${customer_id}: ${error.message}`
+      );
     }
-    throw new Error('Failed to soft delete customer.');
+    throw new Error(`Failed to soft delete customer ${customer_id}.`);
   }
 }
 

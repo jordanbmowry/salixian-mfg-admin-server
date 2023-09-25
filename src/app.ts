@@ -11,6 +11,7 @@ import type { CustomError } from './types/types';
 
 const app: Application = express();
 
+// application middleware
 app.use(cors());
 app.use(helmet());
 app.use(express.json());
