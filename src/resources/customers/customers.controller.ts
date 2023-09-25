@@ -27,7 +27,9 @@ const customerSchema = Joi.object({
   first_name: Joi.string().required(),
   last_name: Joi.string().required(),
   email: Joi.string().email().required(),
-  phone_number: Joi.string().required(),
+  phone_number: Joi.string()
+    .pattern(/^\d{3}-\d{2}-\d{4}$/)
+    .required(),
   shipping_address: Joi.string().allow(null, ''),
   shipping_city: Joi.string().allow(null, ''),
   shipping_state: Joi.string().allow(null, ''),
@@ -141,7 +143,7 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
     options.phoneNumber = req.query.phoneNumber as string;
   }
 
-  const data = await list({
+  const { customers, totalCount } = await list({
     page: options.page,
     pageSize: options.pageSize,
     startDate: options.startDate,
@@ -150,7 +152,19 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
     phoneNumber: options.phoneNumber,
   });
 
-  res.json({ message: 'List customers', data, status: 'success' });
+  const meta = {
+    currentPage: options.page,
+    totalPages: Math.ceil(totalCount / (options.pageSize || 10)),
+    pageSize: options.pageSize,
+    totalCount,
+  };
+
+  res.json({
+    message: 'List customers',
+    data: customers,
+    meta,
+    status: 'success',
+  });
 }
 
 async function handleHardDelete(req: Request, res: Response): Promise<void> {
