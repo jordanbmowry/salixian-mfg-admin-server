@@ -81,20 +81,25 @@ export async function list(
       query = query.where('phone_number', options.phoneNumber);
     }
 
-    // First, get the total count
-    const totalCountResult = await query.clone().count('* as count').first();
-    const totalCount = totalCountResult
-      ? parseInt(totalCountResult.count as string, 10)
-      : 0;
-
     // Apply pagination to the query
     const page = options.page || DEFAULT_PAGE_PAGINATION;
     const pageSize = options.pageSize || DEFAULT_PAGE_SIZE;
 
-    const customers = await query
+    const totalCountPromise = query.clone().count('* as count').first();
+
+    const customersPromise = query
       .select('*')
       .limit(pageSize)
       .offset((page - 1) * pageSize);
+
+    const [totalCountResult, customers] = await Promise.all([
+      totalCountPromise,
+      customersPromise,
+    ]);
+
+    const totalCount = totalCountResult
+      ? parseInt(totalCountResult.count as string, 10)
+      : 0;
 
     return { customers, totalCount };
   } catch (error) {
