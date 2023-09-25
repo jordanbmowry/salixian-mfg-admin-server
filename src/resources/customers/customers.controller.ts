@@ -49,6 +49,7 @@ async function handleCreate(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  logMethod(req, 'handleCreate');
   const customerData: Customer = req.body?.data;
   const createdCustomer = await create(customerData);
   res.status(201).json({

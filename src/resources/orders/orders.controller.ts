@@ -84,6 +84,7 @@ async function handleCreate(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  logMethod(req, 'handleCreate');
   const orderData: Partial<Order> = req.body?.data;
   const createdOrder = await create(orderData);
   res.status(201).json({
@@ -98,6 +99,7 @@ async function handleUpdate(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  logMethod(req, 'handleUpdate');
   const orderData: Partial<Order> = req.body?.data;
 
   const updatedOrder = {
