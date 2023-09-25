@@ -184,17 +184,24 @@ async function handleGetCustomerWithOrders(
   const page = Number(req.query.page) || 1;
   const pageSize = Number(req.query.pageSize) || 10;
 
-  const orders = await fetchOrdersByCustomerId(
-    customer.customer_id,
-    page,
-    pageSize
-  );
+  const { orders, totalCount: totalCountString } =
+    await fetchOrdersByCustomerId(customer.customer_id, page, pageSize);
+  const totalCount =
+    typeof totalCountString === 'number'
+      ? totalCountString
+      : Number(totalCountString) || 0;
 
   res.json({
     status: 'success',
     data: {
       orders,
       customer,
+    },
+    meta: {
+      currentPage: page,
+      pageSize: pageSize,
+      totalPages: Math.ceil(totalCount / pageSize),
+      totalCount,
     },
     message: `customer_id ${customer.customer_id} and orders`,
   });

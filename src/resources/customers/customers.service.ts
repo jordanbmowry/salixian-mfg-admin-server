@@ -120,11 +120,21 @@ export async function fetchOrdersByCustomerId(
   pageSize: number = 10
 ) {
   try {
-    return knex('orders')
-      .select('*')
+    const ordersQuery = knex('orders')
       .where({ customer_id })
       .limit(pageSize)
       .offset((page - 1) * pageSize);
+
+    const totalCountQuery = knex('orders')
+      .where({ customer_id })
+      .count({ totalCount: '*' });
+
+    const [orders, [{ totalCount }]] = await Promise.all([
+      ordersQuery,
+      totalCountQuery,
+    ]);
+
+    return { orders, totalCount };
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(
