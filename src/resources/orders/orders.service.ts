@@ -81,3 +81,18 @@ export async function update(updatedOrder: Partial<Order>) {
     throw new Error(`Failed to update order ${updatedOrder.order_id}.`);
   }
 }
+
+export async function softDelete(order_id: string): Promise<void> {
+  try {
+    await knex('orders').where({ order_id }).update({
+      deleted_at: knex.fn.now(),
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(
+        `Failed to soft delete order ${order_id}: ${error.message}`
+      );
+    }
+    throw new Error(`Failed to soft delete order ${order_id}.`);
+  }
+}

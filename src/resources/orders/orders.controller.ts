@@ -5,6 +5,7 @@ import {
   create,
   listOrdersWithCustomers,
   update,
+  softDelete,
 } from './orders.service';
 import { customerExists } from '../customers/customers.controller';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
@@ -109,6 +110,19 @@ async function handleUpdate(
   res.json({ status: 'success', data, message: 'Updated order' });
 }
 
+async function handleSoftDelete(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  logMethod(req, 'handleSoftDelete');
+  const { orderId } = req.params;
+  await softDelete(orderId);
+  res
+    .status(200)
+    .json({ message: `Order ${orderId} soft deleted successfully.` });
+}
+
 export default {
   list: [authenticateJWT, asyncErrorBoundary(listOrders)],
   read: [authenticateJWT, asyncErrorBoundary(orderExists), readOrder],
@@ -131,5 +145,10 @@ export default {
     asyncErrorBoundary(orderExists),
     validateDataInBody(orderSchema),
     asyncErrorBoundary(handleUpdate),
+  ],
+  softDelete: [
+    authenticateJWT,
+    asyncErrorBoundary(orderExists),
+    asyncErrorBoundary(handleSoftDelete),
   ],
 };
