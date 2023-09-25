@@ -64,3 +64,12 @@ export interface CustomOrderCustomer {
   customer_created_at: string;
   customer_updated_at: string;
 }
+
+export interface CustomerListOptions {
+  page?: number;
+  pageSize?: number;
+  startDate?: Date | string | undefined;
+  endDate?: Date | string | undefined;
+  email?: string;
+  phoneNumber?: string;
+}

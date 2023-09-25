@@ -17,7 +17,7 @@ import { ensureAdmin } from '../../auth/ensureAdmin';
 import { validateDataInBody } from '../../errors/validateDataInBody';
 import { sanitizeRequestBody } from '../../utils/sanitizeMiddleware';
 import Joi from 'joi';
-import type { Customer } from '../../types/types';
+import type { Customer, CustomerListOptions } from '../../types/types';
 
 const NOT_FOUND = 404;
 const BAD_REQUEST = 400;
@@ -123,7 +123,33 @@ function readCustomer(req: Request, res: Response) {
 
 async function listCustomers(req: Request, res: Response): Promise<void> {
   logMethod(req, 'listCustomers');
-  const data = await list();
+  const options: CustomerListOptions = {
+    page: req.query.page ? Number(req.query.page) : 1,
+    pageSize: req.query.pageSize ? Number(req.query.pageSize) : 10,
+  };
+
+  if (req.query.startDate && req.query.startDate !== 'undefined') {
+    options.startDate = new Date(req.query.startDate as string);
+  }
+  if (req.query.endDate && req.query.endDate !== 'undefined') {
+    options.endDate = new Date(req.query.endDate as string);
+  }
+  if (req.query.email && req.query.email !== 'undefined') {
+    options.email = req.query.email as string;
+  }
+  if (req.query.phoneNumber && req.query.phoneNumber !== 'undefined') {
+    options.phoneNumber = req.query.phoneNumber as string;
+  }
+
+  const data = await list({
+    page: options.page,
+    pageSize: options.pageSize,
+    startDate: options.startDate,
+    endDate: options.endDate,
+    email: options.email,
+    phoneNumber: options.phoneNumber,
+  });
+
   res.json({ message: 'List customers', data, status: 'success' });
 }
 
