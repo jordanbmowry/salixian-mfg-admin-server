@@ -22,22 +22,25 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('orders', (table) => {
     table.uuid('order_id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table.timestamp('order_date').notNullable().defaultTo(knex.fn.now());
-    table.text('order_description');
+    table.text('order_description').notNullable();
     table.decimal('customer_cost', 14, 2).notNullable();
-    table.decimal('input_expenses', 14, 2).notNullable();
-    table.decimal('taxes_fees', 14, 2).notNullable();
-    table.decimal('shipping_cost', 14, 2).notNullable();
-    table.decimal('total_write_off', 14, 2).notNullable();
-    table.decimal('profit', 14, 2).notNullable();
+    table.decimal('input_expenses', 14, 2).defaultTo(0);
+    table.decimal('taxes_fees', 14, 2).defaultTo(0);
+    table.decimal('shipping_cost', 14, 2).defaultTo(0);
+    table.decimal('total_write_off', 14, 2).defaultTo(0);
+    table.decimal('profit', 14, 2).defaultTo(0);
     table.text('notes');
     table
       .specificType('order_status', 'order_status_enum')
+      .notNullable()
       .defaultTo('pending');
     table
       .specificType('payment_status', 'payment_status_enum')
+      .notNullable()
       .defaultTo('not paid');
     table
       .uuid('customer_id')
+      .notNullable()
       .references('customer_id')
       .inTable('customers')
       .onDelete('CASCADE');
