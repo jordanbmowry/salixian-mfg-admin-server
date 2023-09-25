@@ -1,6 +1,9 @@
 import knex from '../../db/connection';
 import type { Customer, CustomerListOptions } from '../../types/types';
 
+const DEFAULT_PAGE_PAGINATION = Number(process.env.DEFAULT_PAGE ?? 1);
+const DEFAULT_PAGE_SIZE = Number(process.env.DEFAULT_PAGE_SIZE ?? 10);
+
 export async function create(customer: Customer) {
   try {
     return await knex('customers')
@@ -85,8 +88,9 @@ export async function list(
       : 0;
 
     // Apply pagination to the query
-    const page = options.page || 1;
-    const pageSize = options.pageSize || 10;
+    const page = options.page || DEFAULT_PAGE_PAGINATION;
+    const pageSize = options.pageSize || DEFAULT_PAGE_SIZE;
+
     const customers = await query
       .select('*')
       .limit(pageSize)
@@ -116,8 +120,8 @@ export async function destroy(customer_id: string) {
 
 export async function fetchOrdersByCustomerId(
   customer_id: string,
-  page: number = 1,
-  pageSize: number = 10
+  page: number = DEFAULT_PAGE_PAGINATION,
+  pageSize: number = DEFAULT_PAGE_SIZE
 ) {
   try {
     const ordersQuery = knex('orders')
