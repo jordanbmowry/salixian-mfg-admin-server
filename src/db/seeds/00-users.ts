@@ -7,12 +7,12 @@ export async function seed(knex: Knex): Promise<void> {
   // Inserts seed entries
   await knex('users').insert([
     {
-      email: 'jordan.mowry@gmail.com',
-      password: '$2b$10$gMfdMgvy7kApEtsoq5BwgeCOkea1zwu5OPd8gwnUcP00G3AKjZwKC',
+      email: 'email.faker@gmail.com',
+      password: 'blah',
     },
     {
-      email: 'email@email.com',
-      password: '$2b$10$hmveaM5NijjO3S9RG1IFlOMGMIBUCg/lWgGvjAMP7gSsHM0jCclcq',
+      email: 'faker@email.com',
+      password: 'blah',
     },
   ]);
 }

@@ -59,9 +59,9 @@ export async function update(updatedCustomer: Partial<Customer>) {
 
 export async function list(
   options: CustomerListOptions = {}
-): Promise<Customer[]> {
+): Promise<{ customers: Customer[]; totalCount: number }> {
   try {
-    let query = knex('customers').whereNull('deleted_at').select('*');
+    let query = knex('customers').whereNull('deleted_at');
 
     // Apply filters to the query
     if (options.startDate instanceof Date && options.endDate instanceof Date) {
@@ -78,12 +78,21 @@ export async function list(
       query = query.where('phone_number', options.phoneNumber);
     }
 
+    // First, get the total count
+    const totalCountResult = await query.clone().count('* as count').first();
+    const totalCount = totalCountResult
+      ? parseInt(totalCountResult.count as string, 10)
+      : 0;
+
     // Apply pagination to the query
     const page = options.page || 1;
     const pageSize = options.pageSize || 10;
-    query = query.limit(pageSize).offset((page - 1) * pageSize);
+    const customers = await query
+      .select('*')
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
 
-    return await query;
+    return { customers, totalCount };
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to list customers: ${error.message}`);
