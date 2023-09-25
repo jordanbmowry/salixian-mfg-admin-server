@@ -166,7 +166,15 @@ async function handleGetCustomerWithOrders(
 ): Promise<void> {
   const { customer } = res.locals;
   logMethod(req, 'handleGetCustomerWithOrders');
-  const orders = await fetchOrdersByCustomerId(customer.customer_id);
+
+  const page = Number(req.query.page) || 1;
+  const pageSize = Number(req.query.pageSize) || 10;
+
+  const orders = await fetchOrdersByCustomerId(
+    customer.customer_id,
+    page,
+    pageSize
+  );
 
   res.json({
     status: 'success',
@@ -174,7 +182,7 @@ async function handleGetCustomerWithOrders(
       orders,
       customer,
     },
-    message: `customer_id ${customer.customer_id} and orders inner join`,
+    message: `customer_id ${customer.customer_id} and orders`,
   });
 }
 

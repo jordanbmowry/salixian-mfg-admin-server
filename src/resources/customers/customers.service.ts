@@ -105,13 +105,23 @@ export async function destroy(customer_id: string) {
   }
 }
 
-export async function fetchOrdersByCustomerId(customer_id: string) {
+export async function fetchOrdersByCustomerId(
+  customer_id: string,
+  page: number = 1,
+  pageSize: number = 10
+) {
   try {
-    return knex('orders').select('*').where({ customer_id });
+    return knex('orders')
+      .select('*')
+      .where({ customer_id })
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Failed to read orders: ${error.message}`);
+      throw new Error(
+        `Failed to list orders for customer ${customer_id}: ${error.message}`
+      );
     }
-    throw new Error('Failed to read orders.');
+    throw new Error(`Failed to list orders for customer ${customer_id}.`);
   }
 }

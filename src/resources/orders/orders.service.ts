@@ -54,7 +54,7 @@ export async function listOrdersWithCustomers(): Promise<
 
 export async function create(order: Partial<Order>) {
   try {
-    return await knex('customers')
+    return await knex('orders')
       .insert(order)
       .returning('*')
       .then((createdRecords) => createdRecords[0]);
