@@ -96,3 +96,14 @@ export async function softDelete(order_id: string): Promise<void> {
     throw new Error(`Failed to soft delete order ${order_id}.`);
   }
 }
+
+export async function destroy(order_id: string) {
+  try {
+    await knex('orders').where({ order_id }).del();
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to delete order ${order_id}: ${error.message}`);
+    }
+    throw new Error(`Failed to delete order ${order_id}.`);
+  }
+}

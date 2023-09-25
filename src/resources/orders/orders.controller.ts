@@ -6,6 +6,7 @@ import {
   listOrdersWithCustomers,
   update,
   softDelete,
+  destroy,
 } from './orders.service';
 import { customerExists } from '../customers/customers.controller';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
@@ -51,9 +52,7 @@ async function orderExists(
     res.locals.order = order;
     return next();
   }
-  next(
-    new AppError(BAD_REQUEST, `Order ${req.params.orderId} cannot be found.`)
-  );
+  next(new AppError(NOT_FOUND, `Order ${req.params.orderId} cannot be found.`));
 }
 
 async function listOrders(req: Request, res: Response): Promise<void> {
@@ -123,6 +122,13 @@ async function handleSoftDelete(
     .json({ message: `Order ${orderId} soft deleted successfully.` });
 }
 
+async function handleHardDelete(req: Request, res: Response): Promise<void> {
+  const { order } = res.locals;
+  logMethod(req, 'handleHardDelete');
+  await destroy(order.order_id);
+  res.sendStatus(204);
+}
+
 export default {
   list: [authenticateJWT, asyncErrorBoundary(listOrders)],
   read: [authenticateJWT, asyncErrorBoundary(orderExists), readOrder],
@@ -150,5 +156,10 @@ export default {
     authenticateJWT,
     asyncErrorBoundary(orderExists),
     asyncErrorBoundary(handleSoftDelete),
+  ],
+  hardDelete: [
+    authenticateJWT,
+    asyncErrorBoundary(orderExists),
+    handleHardDelete,
   ],
 };
