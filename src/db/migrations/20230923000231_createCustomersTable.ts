@@ -32,7 +32,6 @@ export async function up(knex: Knex): Promise<void> {
     table.index('phone_number');
   });
 
-  // Add trigger to update 'updated_at' column on each update for customers
   await knex.raw(`
     CREATE OR REPLACE FUNCTION update_customer_timestamp()
     RETURNS TRIGGER AS $$
@@ -41,9 +40,7 @@ export async function up(knex: Knex): Promise<void> {
       RETURN NEW;
     END;
     $$ LANGUAGE plpgsql;
-  `);
 
-  await knex.raw(`
     CREATE TRIGGER update_customer_timestamp
     BEFORE UPDATE
     ON customers

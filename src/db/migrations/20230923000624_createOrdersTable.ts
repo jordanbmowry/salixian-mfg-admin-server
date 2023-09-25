@@ -40,14 +40,14 @@ export async function up(knex: Knex): Promise<void> {
       .uuid('customer_id')
       .references('customer_id')
       .inTable('customers')
-      .onDelete('SET NULL');
+      .onDelete('CASCADE');
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
+    table.timestamp('deleted_at').nullable(); // Soft delete column
     // Indices
     table.index('order_date');
   });
 
-  // Add trigger to update 'updated_at' column on each update
   await knex.raw(`
     CREATE OR REPLACE FUNCTION update_order_timestamp()
     RETURNS TRIGGER AS $$
@@ -56,9 +56,7 @@ export async function up(knex: Knex): Promise<void> {
       RETURN NEW;
     END;
     $$ LANGUAGE plpgsql;
-  `);
 
-  await knex.raw(`
     CREATE TRIGGER update_order_timestamp
     BEFORE UPDATE
     ON orders
