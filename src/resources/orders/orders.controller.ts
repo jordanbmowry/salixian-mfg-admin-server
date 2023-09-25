@@ -1,5 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import { list, read, create, listOrdersWithCustomers } from './orders.service';
+import {
+  list,
+  read,
+  create,
+  listOrdersWithCustomers,
+  update,
+} from './orders.service';
 import { customerExists } from '../customers/customers.controller';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
 import bodyHasDataProperty from '../../errors/bodyHasDataProperty';
@@ -81,6 +87,22 @@ async function handleCreate(
   });
 }
 
+async function handleUpdate(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const orderData: Partial<Order> = req.body?.data;
+
+  const updatedOrder = {
+    ...orderData,
+    order_id: res.locals.order.order_id,
+  };
+
+  const data = await update(updatedOrder);
+  res.json({ status: 'success', data, message: 'Updated order' });
+}
+
 export default {
   list: [authenticateJWT, asyncErrorBoundary(listOrders)],
   read: [authenticateJWT, asyncErrorBoundary(orderExists), readOrder],
@@ -94,5 +116,12 @@ export default {
     validateDataInBody(orderSchema),
     asyncErrorBoundary(customerExists),
     asyncErrorBoundary(handleCreate),
+  ],
+  update: [
+    authenticateJWT,
+    bodyHasDataProperty,
+    asyncErrorBoundary(orderExists),
+    validateDataInBody(orderSchema),
+    asyncErrorBoundary(handleUpdate),
   ],
 };

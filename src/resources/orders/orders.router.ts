@@ -14,7 +14,11 @@ router
   .post(controller.create)
   .all(methodNotAllowed);
 
-router.route(ORDER_ID_ROUTE).get(controller.read).all(methodNotAllowed);
+router
+  .route(ORDER_ID_ROUTE)
+  .get(controller.read)
+  .put(controller.update)
+  .all(methodNotAllowed);
 
 router
   .route(ORDERS_WITH_CUSTOMERS)

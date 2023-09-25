@@ -65,3 +65,19 @@ export async function create(order: Partial<Order>) {
     throw new Error('Failed to create order.');
   }
 }
+
+export async function update(updatedOrder: Partial<Order>) {
+  try {
+    return await knex('orders')
+      .select('*')
+      .where({ order_id: updatedOrder.order_id })
+      .update(updatedOrder, '*');
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(
+        `Failed to update order ${updatedOrder.order_id}: ${error.message}`
+      );
+    }
+    throw new Error(`Failed to update order ${updatedOrder.order_id}.`);
+  }
+}
