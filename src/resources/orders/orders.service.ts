@@ -57,6 +57,10 @@ export async function listOrdersWithCustomers(
     ]);
   }
 
+  if (options.phoneNumber) {
+    query = query.where('c.phone_number', 'like', `%${options.phoneNumber}%`);
+  }
+
   if (options.email) {
     query = query.where('c.email', 'like', `%${options.email}%`);
   }

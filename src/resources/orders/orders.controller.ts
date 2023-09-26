@@ -71,9 +71,11 @@ async function fetchOrdersWithCustomers(
       email,
       sortBy,
       order,
+      phoneNumber,
     } = req.query;
 
     const options: OrderListOptions = {
+      phoneNumber: (phoneNumber as string) || undefined,
       page: Number(page),
       pageSize: Number(pageSize),
       startDate: startDate ? new Date(startDate as string) : undefined,

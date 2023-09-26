@@ -103,5 +103,6 @@ export interface OrderListOptions {
   firstName?: string;
   lastName?: string;
   sortBy?: string;
+  phoneNumber?: string;
   order?: 'asc' | 'desc';
 }
