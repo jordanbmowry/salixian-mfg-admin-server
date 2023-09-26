@@ -16,7 +16,11 @@ import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
 import { Order, OrderListOptions } from '../../types/types';
 import { validateDataInBody } from '../../errors/validateDataInBody';
-import { sanitizeRequestBody } from '../../utils/sanitizeMiddleware';
+import {
+  sanitizeRequestBody,
+  sanitizeParams,
+  sanitizeQuery,
+} from '../../utils/sanitizeMiddleware';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { orderSchema } from '../../errors/joiValidationSchemas';
 
@@ -170,10 +174,16 @@ async function handleHardDelete(req: Request, res: Response): Promise<void> {
 }
 
 export default {
-  list: [authenticateJWT, asyncErrorBoundary(listOrders)],
-  read: [authenticateJWT, asyncErrorBoundary(orderExists), readOrder],
+  list: [authenticateJWT, sanitizeQuery, asyncErrorBoundary(listOrders)],
+  read: [
+    authenticateJWT,
+    sanitizeParams,
+    asyncErrorBoundary(orderExists),
+    readOrder,
+  ],
   listOrdersWithCustomers: [
     authenticateJWT,
+    sanitizeQuery,
     asyncErrorBoundary(fetchOrdersWithCustomers),
   ],
   create: [
@@ -187,6 +197,7 @@ export default {
   update: [
     authenticateJWT,
     sanitizeRequestBody,
+    sanitizeParams,
     bodyHasDataProperty,
     asyncErrorBoundary(orderExists),
     validateDataInBody(orderSchema),
@@ -194,11 +205,13 @@ export default {
   ],
   softDelete: [
     authenticateJWT,
+    sanitizeParams,
     asyncErrorBoundary(orderExists),
     asyncErrorBoundary(handleSoftDelete),
   ],
   hardDelete: [
     authenticateJWT,
+    sanitizeParams,
     asyncErrorBoundary(orderExists),
     handleHardDelete,
   ],

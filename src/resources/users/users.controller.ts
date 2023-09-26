@@ -11,7 +11,10 @@ import {
   updateLastLogin,
 } from './users.service';
 import bodyHasDataProperty from '../../errors/bodyHasDataProperty';
-import { sanitizeRequestBody } from '../../utils/sanitizeMiddleware';
+import {
+  sanitizeRequestBody,
+  sanitizeParams,
+} from '../../utils/sanitizeMiddleware';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
 import { setTokenCookie } from '../../auth/setTokenCookie';
 import { jwtSecretExists } from '../../auth/jwtSecretExists';
@@ -246,10 +249,16 @@ export default {
     bodyHasDataProperty,
     asyncErrorBoundary(createUser),
   ],
-  read: [authenticateJWT, asyncErrorBoundary(userExists), readUser],
+  read: [
+    authenticateJWT,
+    sanitizeParams,
+    asyncErrorBoundary(userExists),
+    readUser,
+  ],
   update: [
     authenticateJWT,
     sanitizeRequestBody,
+    sanitizeParams,
     bodyHasDataProperty,
     asyncErrorBoundary(userExists),
     asyncErrorBoundary(updateUser),
@@ -257,6 +266,7 @@ export default {
   delete: [
     authenticateJWT,
     ensureAdmin,
+    sanitizeParams,
     asyncErrorBoundary(userExists),
     asyncErrorBoundary(deleteUser),
   ],
