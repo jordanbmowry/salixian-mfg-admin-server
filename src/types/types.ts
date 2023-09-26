@@ -5,29 +5,32 @@ export interface CustomError extends Error {
 
 export interface User {
   email: string;
-  role?: string;
-  first_name?: string;
-  last_name?: string;
+  role: string;
+  first_name: string;
+  last_name: string;
   password: string;
-  user_id?: string;
+  user_id: string;
+  last_login: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Order {
   order_id: string;
-  order_date: Date;
-  order_description?: string | null;
+  order_date: string;
+  order_description: string;
   customer_cost: number;
-  input_expenses: number;
-  taxes_fees: number;
-  shipping_cost: number;
-  total_write_off: number;
-  profit: number;
-  notes?: string | null;
+  input_expenses?: number | null;
+  taxes_fees?: number | null;
+  shipping_cost?: number | null;
+  total_write_off?: number | null;
+  profit?: number | null;
+  notes?: string;
   order_status: 'pending' | 'in progress' | 'complete' | 'canceled';
   payment_status: 'not paid' | 'partially paid' | 'fully paid';
-  customer_id?: string | null;
-  created_at: Date;
-  updated_at: Date;
+  customer_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Customer {
@@ -50,7 +53,7 @@ export interface Customer {
   deleted_at?: Date | null;
 }
 
-export interface CustomOrderCustomer {
+export interface OrderWithCustomer {
   order_id: string;
   order_date: string;
   order_status: string;
@@ -72,4 +75,17 @@ export interface CustomerListOptions {
   endDate?: Date | string | undefined;
   email?: string;
   phoneNumber?: string;
+}
+
+export interface PaginationOptions {
+  page: number;
+  pageSize: number;
+}
+
+export interface PaginationResult<T> {
+  data: T[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
 }
