@@ -9,18 +9,19 @@ import pinoHttp from 'pino-http';
 import rateLimit from 'express-rate-limit';
 import logger from './config/logger';
 import { AppError } from './errors/AppError';
+import { HttpStatusCode } from './errors/httpStatusCode';
 import type { CustomError } from './types/types';
 
 const app: Application = express();
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
-  standardHeaders: 'draft-7', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
   message: 'Too many requests from this IP, please try again later',
 });
-// application middleware
+
 app.use(cors());
 app.use(helmet());
 app.use(express.json());
@@ -28,17 +29,14 @@ app.use(pinoHttp({ logger }));
 app.use(cookieParser());
 app.use(limiter);
 
-// routes
 app.use('/users', usersRouter);
 app.use('/customers', customersRouter);
 app.use('/orders', ordersRouter);
 
-// Not found handler
-app.use((request, response, next) => {
-  next(new AppError(404, `Not found: ${request.originalUrl}`));
+app.use((req, res, next) => {
+  next(new AppError(404, `Not found: ${req.originalUrl}`));
 });
 
-// Error handler
 app.use(
   (
     error: CustomError,
@@ -47,9 +45,13 @@ app.use(
     next: NextFunction
   ) => {
     logger.error(error);
-    const { status = 500, message = 'Something went wrong!' } = error;
+    if (!error.status || (error.status >= 500 && error.status <= 599)) {
+      return response
+        .status(HttpStatusCode.INTERNAL_SERVER_ERROR)
+        .json({ error: 'Internal server error. Please try again later.' });
+    }
 
-    response.status(status).json({ error: message });
+    return response.status(error.status).json({ error: error.message });
   }
 );
 
