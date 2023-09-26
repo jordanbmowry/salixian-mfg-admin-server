@@ -69,7 +69,13 @@ async function handleCreate(
   next: NextFunction
 ): Promise<void> {
   logMethod(req, 'handleCreate');
+
   const orderData: Partial<Order> = req.body?.data;
+
+  if (!orderData) {
+    throw new AppError(HttpStatusCode.BAD_REQUEST, 'Invalid order data');
+  }
+
   const createdOrder = await create(orderData);
   res.status(HttpStatusCode.CREATED).json({
     status: 'success',
@@ -104,7 +110,7 @@ async function handleSoftDelete(
   const { orderId } = req.params;
   await softDelete(orderId);
   res
-    .status(HttpStatusCode.OK)
+    .status(HttpStatusCode.NO_CONTENT)
     .json({ message: `Order ${orderId} soft deleted successfully.` });
 }
 

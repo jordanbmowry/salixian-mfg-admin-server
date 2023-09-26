@@ -200,7 +200,11 @@ async function login(
     return;
   }
 
-  const passwordIsValid = await bcrypt.compare(passwordEntered, hashedPassword);
+  const [passwordIsValid] = await Promise.all([
+    bcrypt.compare(passwordEntered, hashedPassword),
+    updateLastLogin(user_id),
+  ]);
+
   if (!passwordIsValid) {
     next(new AppError(HttpStatusCode.BAD_REQUEST, 'Invalid password.'));
     return;
@@ -217,8 +221,6 @@ async function login(
   });
 
   setTokenCookie(res, token);
-
-  await updateLastLogin(user_id);
 
   const userData = { ...res.locals.user };
   delete userData.password;

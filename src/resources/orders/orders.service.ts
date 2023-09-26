@@ -66,10 +66,8 @@ export async function create(order: Partial<Order>) {
 
 export async function update(updatedOrder: Partial<Order>) {
   try {
-    return await knex('orders')
-      .select('*')
-      .where({ order_id: updatedOrder.order_id })
-      .update(updatedOrder, '*');
+    const { order_id } = updatedOrder;
+    return await knex('orders').where({ order_id }).update(updatedOrder, '*');
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(
