@@ -6,18 +6,27 @@ import customersRouter from './resources/customers/customers.router';
 import ordersRouter from './resources/orders/orders.router';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
+import rateLimit from 'express-rate-limit';
 import logger from './config/logger';
 import { AppError } from './errors/AppError';
 import type { CustomError } from './types/types';
 
 const app: Application = express();
 
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+  standardHeaders: 'draft-7', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: 'Too many requests from this IP, please try again later',
+});
 // application middleware
 app.use(cors());
 app.use(helmet());
 app.use(express.json());
 app.use(pinoHttp({ logger }));
 app.use(cookieParser());
+app.use(limiter);
 
 // routes
 app.use('/users', usersRouter);
