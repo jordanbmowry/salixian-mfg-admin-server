@@ -21,7 +21,19 @@ import { authenticateJWT } from '../../auth/authMiddleware';
 import { ensureAdmin } from '../../auth/ensureAdmin';
 import type { User } from '../../types/types';
 import Joi from 'joi';
+import path from 'path';
+import { Worker } from 'worker_threads';
 
+const { NODE_ENV = 'development' } = process.env;
+const BASE_PATH =
+  process.env.RAILWAY_PROJECT_ROOT ?? process.env.BASE_PATH ?? '';
+
+const workerPath =
+  NODE_ENV === 'production'
+    ? path.resolve(BASE_PATH, 'dist/auth/hashworker.js')
+    : path.resolve(__dirname, '../../../dist/auth/hashworker.js');
+
+const worker = new Worker(workerPath);
 const userSchema = Joi.object({
   email: Joi.string().email().required(),
   role: Joi.string().allow(null, ''),
@@ -88,17 +100,17 @@ async function checkAndSetUser(
   }
 }
 
-const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
-
-async function hashPassword(password: string) {
-  try {
-    return bcrypt.hash(password, SALT_ROUNDS);
-  } catch (error) {
-    throw new AppError(
-      INTERNAL_SERVER_ERROR,
-      'There was a problem hashing password'
-    );
-  }
+async function hashPassword(password: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    worker.on('message', resolve);
+    worker.on('error', reject);
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Worker stopped with exit code ${code}`));
+      }
+    });
+    worker.postMessage(password);
+  });
 }
 
 async function createUser(req: RequestWithUser, res: Response): Promise<void> {
