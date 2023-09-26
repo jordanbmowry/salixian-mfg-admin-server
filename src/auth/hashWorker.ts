@@ -15,9 +15,8 @@ async function hashPassword(password: string): Promise<string> {
 parentPort!.on('message', async (password: string) => {
   try {
     const hash = await hashPassword(password);
-    parentPort!.postMessage(hash);
+    parentPort!.postMessage({ hash });
   } catch (error) {
-    // Handle error, you might want to send an error message back to the main thread.
-    parentPort!.postMessage('Error hashing password');
+    parentPort!.postMessage({ error: 'Error hashing password' });
   }
 });

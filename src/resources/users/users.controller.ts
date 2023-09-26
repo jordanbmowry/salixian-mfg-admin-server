@@ -102,7 +102,13 @@ async function checkAndSetUser(
 
 async function hashPassword(password: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    worker.on('message', resolve);
+    worker.on('message', (message) => {
+      if (message.error) {
+        reject(new Error(message.error));
+      } else {
+        resolve(message.hash);
+      }
+    });
     worker.on('error', reject);
     worker.on('exit', (code) => {
       if (code !== 0) {
