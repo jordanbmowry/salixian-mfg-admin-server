@@ -79,11 +79,11 @@ export async function list(
   }
 
   if (options.email) {
-    query = query.where('email', options.email);
+    query = query.whereRaw('email LIKE ?', [`%${options.email}%`]);
   }
 
   if (options.phoneNumber) {
-    query = query.where('phone_number', options.phoneNumber);
+    query = query.whereRaw('phone_number LIKE ?', [`%${options.phoneNumber}%`]);
   }
 
   return paginate<Customer>(query, {
