@@ -24,8 +24,7 @@ import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { customerSchema } from '../../errors/joiValidationSchemas';
 import type { Customer, CustomerListOptions } from '../../types/types';
 
-const DEFAULT_PAGE_PAGINATION = 1;
-const DEFAULT_PAGE_SIZE = 10;
+const { DEFAULT_PAGE_PAGINATION = 1, DEFAULT_PAGE_SIZE = 10 } = process.env;
 
 async function handleCreate(
   req: Request,
@@ -177,8 +176,8 @@ async function handleGetCustomerWithOrders(
   const { customer } = res.locals;
   logMethod(req, 'handleGetCustomerWithOrders');
 
-  const page = Number(req.query.page) || DEFAULT_PAGE_PAGINATION;
-  const pageSize = Number(req.query.pageSize) || DEFAULT_PAGE_SIZE;
+  const page = Number(req.query.page || DEFAULT_PAGE_PAGINATION);
+  const pageSize = Number(req.query.pageSize || DEFAULT_PAGE_SIZE);
   const orderBy = (req.query.orderBy as string) || 'order_id';
   const order = (req.query.order as 'asc' | 'desc') || 'asc';
 

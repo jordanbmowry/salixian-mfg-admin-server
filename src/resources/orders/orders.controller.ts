@@ -14,11 +14,13 @@ import bodyHasDataProperty from '../../errors/bodyHasDataProperty';
 import { AppError } from '../../errors/AppError';
 import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
-import { Order } from '../../types/types';
+import { Order, OrderListOptions } from '../../types/types';
 import { validateDataInBody } from '../../errors/validateDataInBody';
 import { sanitizeRequestBody } from '../../utils/sanitizeMiddleware';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { orderSchema } from '../../errors/joiValidationSchemas';
+
+const { DEFAULT_PAGE_PAGINATION = 1, DEFAULT_PAGE_SIZE = 10 } = process.env;
 
 async function orderExists(
   req: Request,
@@ -58,9 +60,53 @@ async function fetchOrdersWithCustomers(
   req: Request,
   res: Response
 ): Promise<void> {
-  logMethod(req, 'fetchOrdersWithCustomers');
-  const data = await listOrdersWithCustomers();
-  res.json({ message: 'List orders with customers', data, status: 'success' });
+  try {
+    const {
+      page = DEFAULT_PAGE_PAGINATION,
+      pageSize = DEFAULT_PAGE_SIZE,
+      startDate,
+      endDate,
+      firstName,
+      lastName,
+      email,
+      sortBy,
+      order,
+    } = req.query;
+
+    const options: OrderListOptions = {
+      page: Number(page),
+      pageSize: Number(pageSize),
+      startDate: startDate ? new Date(startDate as string) : undefined,
+      endDate: endDate ? new Date(endDate as string) : undefined,
+      email: (email as string) || undefined,
+      firstName: (firstName as string) || undefined,
+      lastName: (lastName as string) || undefined,
+      sortBy: (sortBy as string) || undefined,
+      order: (order as 'asc' | 'desc') || undefined,
+    };
+
+    const { data, totalCount } = await listOrdersWithCustomers(options);
+
+    const meta = {
+      currentPage: options.page,
+      totalPages: Math.ceil(totalCount / options.pageSize!),
+      pageSize: options.pageSize,
+      totalCount,
+    };
+
+    res.json({
+      message: 'List orders with customers',
+      data,
+      meta,
+      status: 'success',
+    });
+  } catch (error) {
+    res.status(500).json({
+      message:
+        error instanceof Error ? error.message : 'An unknown error occurred',
+      status: 'error',
+    });
+  }
 }
 
 async function handleCreate(

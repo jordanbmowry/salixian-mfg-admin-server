@@ -1,5 +1,11 @@
 import knex from '../../db/connection';
-import type { Order, OrderWithCustomer } from '../../types/types';
+import type {
+  Order,
+  OrderWithCustomer,
+  OrderListOptions,
+  PaginationResult,
+} from '../../types/types';
+import { paginate } from '../../utils/paginate';
 
 export async function list(): Promise<Order[]> {
   try {
@@ -23,31 +29,55 @@ export async function read(order_id: string): Promise<Order> {
   }
 }
 
-export async function listOrdersWithCustomers(): Promise<OrderWithCustomer[]> {
-  try {
-    return await knex('orders as o')
-      .join('customers as c', 'o.customer_id', 'c.customer_id')
-      .select([
-        'o.order_id',
-        'o.order_date',
-        'o.order_status',
-        'o.payment_status',
-        'o.created_at as order_created_at',
-        'c.first_name',
-        'c.last_name',
-        'c.customer_id',
-        'c.email',
-        'c.phone_number',
-        'c.created_at as customer_created_at',
-        'c.updated_at as customer_updated_at',
-      ])
-      .whereNull('c.deleted_at');
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to list orders with customers: ${error.message}`);
-    }
-    throw new Error('Failed to list orders with customers.');
+export async function listOrdersWithCustomers(
+  options: OrderListOptions = {}
+): Promise<PaginationResult<OrderWithCustomer>> {
+  let query = knex('orders as o')
+    .join('customers as c', 'o.customer_id', 'c.customer_id')
+    .select([
+      'o.order_id',
+      'o.order_date',
+      'o.order_status',
+      'o.payment_status',
+      'o.created_at as order_created_at',
+      'c.first_name',
+      'c.last_name',
+      'c.customer_id',
+      'c.email',
+      'c.phone_number',
+      'c.created_at as customer_created_at',
+      'c.updated_at as customer_updated_at',
+    ])
+    .whereNull('c.deleted_at');
+
+  if (options.startDate && options.endDate) {
+    query = query.whereBetween('o.created_at', [
+      options.startDate.toISOString(),
+      options.endDate.toISOString(),
+    ]);
   }
+
+  if (options.email) {
+    query = query.where('c.email', 'like', `%${options.email}%`);
+  }
+
+  if (options.firstName) {
+    query = query.where('c.first_name', 'like', `%${options.firstName}%`);
+  }
+
+  if (options.lastName) {
+    query = query.where('c.last_name', 'like', `%${options.lastName}%`);
+  }
+
+  const orderBy = options.sortBy || 'o.order_id';
+  const order = options.order || 'asc';
+
+  return paginate<OrderWithCustomer>(query, {
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 10,
+    orderBy,
+    order,
+  });
 }
 
 export async function create(order: Partial<Order>) {

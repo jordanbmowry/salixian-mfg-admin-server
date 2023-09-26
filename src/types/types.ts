@@ -93,3 +93,15 @@ export interface PaginationResult<T> {
   totalPages: number;
   pageSize: number;
 }
+
+export interface OrderListOptions {
+  page?: number;
+  pageSize?: number;
+  startDate?: Date;
+  endDate?: Date;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  sortBy?: string;
+  order?: 'asc' | 'desc';
+}
