@@ -15,7 +15,11 @@ import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
 import { ensureAdmin } from '../../auth/ensureAdmin';
 import { validateDataInBody } from '../../errors/validateDataInBody';
-import { sanitizeRequestBody } from '../../utils/sanitizeMiddleware';
+import {
+  sanitizeRequestBody,
+  sanitizeParams,
+  sanitizeQuery,
+} from '../../utils/sanitizeMiddleware';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { customerSchema } from '../../errors/joiValidationSchemas';
 import type { Customer, CustomerListOptions } from '../../types/types';
@@ -210,30 +214,34 @@ export default {
     validateDataInBody(customerSchema),
     asyncErrorBoundary(handleCreate),
   ],
-  list: [authenticateJWT, asyncErrorBoundary(listCustomers)],
+  list: [authenticateJWT, sanitizeQuery, asyncErrorBoundary(listCustomers)],
   read: [authenticateJWT, asyncErrorBoundary(customerExists), readCustomer],
   update: [
     authenticateJWT,
     sanitizeRequestBody,
     bodyHasDataProperty,
+    sanitizeParams,
     asyncErrorBoundary(customerExists),
     validateDataInBody(customerSchema),
     asyncErrorBoundary(handleUpdate),
   ],
   softDelete: [
     authenticateJWT,
+    sanitizeParams,
     asyncErrorBoundary(customerExists),
     asyncErrorBoundary(handleSoftDelete),
   ],
   hardDelete: [
     authenticateJWT,
     ensureAdmin,
+    sanitizeParams,
     asyncErrorBoundary(customerExists),
     handleHardDelete,
   ],
   listCustomerWithOrders: [
     authenticateJWT,
     asyncErrorBoundary(customerExists),
+    sanitizeQuery,
     asyncErrorBoundary(handleGetCustomerWithOrders),
   ],
 };

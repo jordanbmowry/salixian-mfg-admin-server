@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import xss from 'xss';
 
 // Recursive function to sanitize all string properties in an object or array
-function sanitize(obj: any): any {
+export function sanitize(obj: any): any {
   // If obj is an array, sanitize each element in the array
   if (Array.isArray(obj)) {
     return obj.map((el) => sanitize(el));
@@ -26,5 +26,23 @@ export function sanitizeRequestBody(
   next: NextFunction
 ): void {
   req.body = sanitize(req.body);
+  next();
+}
+
+export function sanitizeQuery(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  req.query = sanitize(req.query);
+  next();
+}
+
+export function sanitizeParams(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  req.params = sanitize(req.params);
   next();
 }
