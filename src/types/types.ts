@@ -75,11 +75,15 @@ export interface CustomerListOptions {
   endDate?: Date | string | undefined;
   email?: string;
   phoneNumber?: string;
+  sortBy?: string;
+  order?: 'desc' | 'asc';
 }
 
 export interface PaginationOptions {
   page: number;
   pageSize: number;
+  orderBy?: string;
+  order?: 'desc' | 'asc';
 }
 
 export interface PaginationResult<T> {

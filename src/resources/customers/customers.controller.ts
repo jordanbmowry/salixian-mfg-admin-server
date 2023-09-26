@@ -114,6 +114,8 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
       endDate,
       email,
       phoneNumber,
+      sortBy,
+      order,
     } = req.query;
 
     const options: CustomerListOptions = {
@@ -123,6 +125,8 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
       endDate: endDate ? new Date(endDate as string) : undefined,
       email: (email as string) || undefined,
       phoneNumber: (phoneNumber as string) || undefined,
+      sortBy: (sortBy as string) || undefined,
+      order: (order as 'asc' | 'desc') || undefined,
     };
 
     const { data, totalCount } = await list(options);
@@ -171,11 +175,15 @@ async function handleGetCustomerWithOrders(
 
   const page = Number(req.query.page) || DEFAULT_PAGE_PAGINATION;
   const pageSize = Number(req.query.pageSize) || DEFAULT_PAGE_SIZE;
+  const orderBy = (req.query.orderBy as string) || 'order_id';
+  const order = (req.query.order as 'asc' | 'desc') || 'asc';
 
   const { data, totalCount } = await fetchOrdersByCustomerId(
     customer.customer_id,
     page,
-    pageSize
+    pageSize,
+    orderBy,
+    order
   );
 
   res.json({

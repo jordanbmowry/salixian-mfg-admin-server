@@ -86,9 +86,16 @@ export async function list(
     query = query.whereRaw('phone_number LIKE ?', [`%${options.phoneNumber}%`]);
   }
 
+  // Default to ordering by 'id' if sortBy is not provided
+  const orderBy = options.sortBy || 'id';
+  // Default to ascending order if order is not provided
+  const order = options.order || 'asc';
+
   return paginate<Customer>(query, {
     page: options.page ?? 1,
     pageSize: options.pageSize ?? 10,
+    orderBy,
+    order,
   });
 }
 
@@ -108,8 +115,15 @@ export async function destroy(customer_id: string) {
 export async function fetchOrdersByCustomerId(
   customer_id: string,
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  orderBy: string = 'order_id',
+  order: 'asc' | 'desc' = 'asc'
 ): Promise<PaginationResult<Order>> {
   const query = knex('orders').where({ customer_id });
-  return paginate<Order>(query, { page, pageSize });
+  return paginate<Order>(query, {
+    page,
+    pageSize,
+    orderBy, // use the orderBy parameter
+    order, // use the order parameter
+  });
 }

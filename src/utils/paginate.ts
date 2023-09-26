@@ -1,26 +1,37 @@
-import { Knex } from 'knex';
+import { Knex, knex } from 'knex';
 import type { PaginationResult, PaginationOptions } from '../types/types';
 
 export async function paginate<T>(
   query: Knex.QueryBuilder,
   options: PaginationOptions
 ): Promise<PaginationResult<T>> {
+  console.log(options);
   const page = options.page ?? 1;
   const pageSize = options.pageSize ?? 10;
+  console.log(options);
+  // Cloning the query for counting total records
+  const totalCountQuery = query.clone();
 
-  const clonedQuery = query.clone();
-  const totalCountQuery = clonedQuery.clone().count('* as count').first();
-  const dataQuery = clonedQuery.limit(pageSize).offset((page - 1) * pageSize);
+  // Execute the total count query
+  const totalCountResult = await totalCountQuery
+    .clearOrder()
+    .clearSelect()
+    .count('* as count')
+    .first();
 
-  const [totalCountResult, data] = await Promise.all([
-    totalCountQuery,
-    dataQuery,
-  ]);
-
+  // Parsing the count result
   const totalCount = totalCountResult
     ? parseInt(totalCountResult.count as string, 10)
     : 0;
 
+  // Apply ordering and limit-offset to the original query
+  const data = await query
+    .clone()
+    .orderBy(options.orderBy || 'id', options.order || 'asc')
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  // Returning the pagination result
   return {
     data: data as T[],
     totalCount,
