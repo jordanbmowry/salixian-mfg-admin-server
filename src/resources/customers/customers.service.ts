@@ -1,5 +1,11 @@
 import knex from '../../db/connection';
-import type { Customer, CustomerListOptions } from '../../types/types';
+import type {
+  Order,
+  Customer,
+  CustomerListOptions,
+  PaginationResult,
+} from '../../types/types';
+import { paginate } from '../../utils/paginate';
 
 const DEFAULT_PAGE_PAGINATION = Number(process.env.DEFAULT_PAGE ?? 1);
 const DEFAULT_PAGE_SIZE = Number(process.env.DEFAULT_PAGE_SIZE ?? 10);
@@ -62,50 +68,28 @@ export async function update(updatedCustomer: Partial<Customer>) {
 
 export async function list(
   options: CustomerListOptions = {}
-): Promise<{ customers: Customer[]; totalCount: number }> {
-  try {
-    let query = knex('customers').whereNull('deleted_at');
+): Promise<PaginationResult<Customer>> {
+  let query = knex('customers').whereNull('deleted_at');
 
-    if (options.startDate instanceof Date && options.endDate instanceof Date) {
-      query = query.whereBetween('created_at', [
-        (options.startDate as Date).toISOString(),
-        (options.endDate as Date).toISOString(),
-      ]);
-    }
-
-    if (options.email) {
-      query = query.where('email', options.email);
-    }
-    if (options.phoneNumber) {
-      query = query.where('phone_number', options.phoneNumber);
-    }
-
-    const page = options.page ?? DEFAULT_PAGE_PAGINATION;
-    const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE;
-
-    const totalCountPromise = query.clone().count('* as count').first();
-
-    const customersPromise = query
-      .select('*')
-      .limit(pageSize)
-      .offset((page - 1) * pageSize);
-
-    const [totalCountResult, customers] = await Promise.all([
-      totalCountPromise,
-      customersPromise,
+  if (options.startDate instanceof Date && options.endDate instanceof Date) {
+    query = query.whereBetween('created_at', [
+      options.startDate.toISOString(),
+      options.endDate.toISOString(),
     ]);
-
-    const totalCount = totalCountResult
-      ? parseInt(totalCountResult.count as string, 10)
-      : 0;
-
-    return { customers, totalCount };
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to list customers: ${error.message}`);
-    }
-    throw new Error(`Failed to list customers.`);
   }
+
+  if (options.email) {
+    query = query.where('email', options.email);
+  }
+
+  if (options.phoneNumber) {
+    query = query.where('phone_number', options.phoneNumber);
+  }
+
+  return paginate<Customer>(query, {
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? 10,
+  });
 }
 
 export async function destroy(customer_id: string) {
@@ -123,31 +107,9 @@ export async function destroy(customer_id: string) {
 
 export async function fetchOrdersByCustomerId(
   customer_id: string,
-  page: number = DEFAULT_PAGE_PAGINATION,
-  pageSize: number = DEFAULT_PAGE_SIZE
-) {
-  try {
-    const ordersQuery = knex('orders')
-      .where({ customer_id })
-      .limit(pageSize)
-      .offset((page - 1) * pageSize);
-
-    const totalCountQuery = knex('orders')
-      .where({ customer_id })
-      .count({ totalCount: '*' });
-
-    const [orders, [{ totalCount }]] = await Promise.all([
-      ordersQuery,
-      totalCountQuery,
-    ]);
-
-    return { orders, totalCount };
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(
-        `Failed to list orders for customer ${customer_id}: ${error.message}`
-      );
-    }
-    throw new Error(`Failed to list orders for customer ${customer_id}.`);
-  }
+  page: number = 1,
+  pageSize: number = 10
+): Promise<PaginationResult<Order>> {
+  const query = knex('orders').where({ customer_id });
+  return paginate<Order>(query, { page, pageSize });
 }

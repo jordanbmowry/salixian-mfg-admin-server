@@ -1,5 +1,5 @@
 import knex from '../../db/connection';
-import type { Order, CustomOrderCustomer } from '../../types/types';
+import type { Order, OrderWithCustomer } from '../../types/types';
 
 export async function list(): Promise<Order[]> {
   try {
@@ -23,9 +23,7 @@ export async function read(order_id: string): Promise<Order> {
   }
 }
 
-export async function listOrdersWithCustomers(): Promise<
-  CustomOrderCustomer[]
-> {
+export async function listOrdersWithCustomers(): Promise<OrderWithCustomer[]> {
   try {
     return await knex('orders as o')
       .join('customers as c', 'o.customer_id', 'c.customer_id')

@@ -125,7 +125,7 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
       phoneNumber: (phoneNumber as string) || undefined,
     };
 
-    const { customers, totalCount } = await list(options);
+    const { data, totalCount } = await list(options);
 
     const meta = {
       currentPage: options.page,
@@ -136,7 +136,7 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
 
     res.json({
       message: 'List customers',
-      data: customers,
+      data,
       meta,
       status: 'success',
     });
@@ -172,17 +172,16 @@ async function handleGetCustomerWithOrders(
   const page = Number(req.query.page) || DEFAULT_PAGE_PAGINATION;
   const pageSize = Number(req.query.pageSize) || DEFAULT_PAGE_SIZE;
 
-  const { orders, totalCount: totalCountString } =
-    await fetchOrdersByCustomerId(customer.customer_id, page, pageSize);
-  const totalCount =
-    typeof totalCountString === 'number'
-      ? totalCountString
-      : Number(totalCountString) || 0;
+  const { data, totalCount } = await fetchOrdersByCustomerId(
+    customer.customer_id,
+    page,
+    pageSize
+  );
 
   res.json({
     status: 'success',
     data: {
-      orders,
+      orders: data,
       customer,
     },
     meta: {
