@@ -24,16 +24,18 @@ import Joi from 'joi';
 import path from 'path';
 import { Worker } from 'worker_threads';
 
-const { NODE_ENV = 'development' } = process.env;
+const { NODE_ENV = 'development', RAILWAY_PROJECT_ROOT } = process.env;
+
 const BASE_PATH =
-  process.env.RAILWAY_PROJECT_ROOT ?? process.env.BASE_PATH ?? '';
-
-const workerPath =
   NODE_ENV === 'production'
-    ? path.resolve(BASE_PATH, 'dist/auth/hashworker.js')
-    : path.resolve(__dirname, '../../../dist/auth/hashworker.js');
+    ? RAILWAY_PROJECT_ROOT || ''
+    : process.env.BASE_PATH || '';
 
-const worker = new Worker(workerPath);
+const relativePath = path.join(BASE_PATH, 'dist/auth/hashWorker.js');
+
+const absolutePath = path.resolve(relativePath);
+
+const worker = new Worker(absolutePath);
 const userSchema = Joi.object({
   email: Joi.string().email().required(),
   role: Joi.string().allow(null, ''),
