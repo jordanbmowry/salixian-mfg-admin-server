@@ -66,11 +66,10 @@ export async function list(
   try {
     let query = knex('customers').whereNull('deleted_at');
 
-    // Apply filters to the query
     if (options.startDate instanceof Date && options.endDate instanceof Date) {
       query = query.whereBetween('created_at', [
-        options.startDate.toISOString(),
-        options.endDate.toISOString(),
+        (options.startDate as Date).toISOString(),
+        (options.endDate as Date).toISOString(),
       ]);
     }
 
@@ -81,9 +80,8 @@ export async function list(
       query = query.where('phone_number', options.phoneNumber);
     }
 
-    // Apply pagination to the query
-    const page = options.page || DEFAULT_PAGE_PAGINATION;
-    const pageSize = options.pageSize || DEFAULT_PAGE_SIZE;
+    const page = options.page ?? DEFAULT_PAGE_PAGINATION;
+    const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE;
 
     const totalCountPromise = query.clone().count('* as count').first();
 

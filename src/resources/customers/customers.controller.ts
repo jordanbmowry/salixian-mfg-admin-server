@@ -20,6 +20,9 @@ import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { customerSchema } from '../../errors/joiValidationSchemas';
 import type { Customer, CustomerListOptions } from '../../types/types';
 
+const DEFAULT_PAGE_PAGINATION = 1;
+const DEFAULT_PAGE_SIZE = 10;
+
 async function handleCreate(
   req: Request,
   res: Response,
@@ -103,47 +106,53 @@ function readCustomer(req: Request, res: Response) {
 }
 
 async function listCustomers(req: Request, res: Response): Promise<void> {
-  logMethod(req, 'listCustomers');
-  const options: CustomerListOptions = {
-    page: req.query.page ? Number(req.query.page) : 1,
-    pageSize: req.query.pageSize ? Number(req.query.pageSize) : 10,
-  };
+  try {
+    const {
+      page = DEFAULT_PAGE_PAGINATION,
+      pageSize = DEFAULT_PAGE_SIZE,
+      startDate,
+      endDate,
+      email,
+      phoneNumber,
+    } = req.query;
 
-  if (req.query.startDate && req.query.startDate !== 'undefined') {
-    options.startDate = new Date(req.query.startDate as string);
-  }
-  if (req.query.endDate && req.query.endDate !== 'undefined') {
-    options.endDate = new Date(req.query.endDate as string);
-  }
-  if (req.query.email && req.query.email !== 'undefined') {
-    options.email = req.query.email as string;
-  }
-  if (req.query.phoneNumber && req.query.phoneNumber !== 'undefined') {
-    options.phoneNumber = req.query.phoneNumber as string;
-  }
+    const options: CustomerListOptions = {
+      page: Number(page),
+      pageSize: Number(pageSize),
+      startDate: startDate ? new Date(startDate as string) : undefined,
+      endDate: endDate ? new Date(endDate as string) : undefined,
+      email: (email as string) || undefined,
+      phoneNumber: (phoneNumber as string) || undefined,
+    };
 
-  const { customers, totalCount } = await list({
-    page: options.page,
-    pageSize: options.pageSize,
-    startDate: options.startDate,
-    endDate: options.endDate,
-    email: options.email,
-    phoneNumber: options.phoneNumber,
-  });
+    const { customers, totalCount } = await list(options);
 
-  const meta = {
-    currentPage: options.page,
-    totalPages: Math.ceil(totalCount / (options.pageSize || 10)),
-    pageSize: options.pageSize,
-    totalCount,
-  };
+    const meta = {
+      currentPage: options.page,
+      totalPages: Math.ceil(totalCount / options.pageSize!),
+      pageSize: options.pageSize,
+      totalCount,
+    };
 
-  res.json({
-    message: 'List customers',
-    data: customers,
-    meta,
-    status: 'success',
-  });
+    res.json({
+      message: 'List customers',
+      data: customers,
+      meta,
+      status: 'success',
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({
+        message: error.message || 'An error occurred',
+        status: 'error',
+      });
+    } else {
+      res.status(500).json({
+        message: 'An unknown error occurred',
+        status: 'error',
+      });
+    }
+  }
 }
 
 async function handleHardDelete(req: Request, res: Response): Promise<void> {
@@ -160,8 +169,8 @@ async function handleGetCustomerWithOrders(
   const { customer } = res.locals;
   logMethod(req, 'handleGetCustomerWithOrders');
 
-  const page = Number(req.query.page) || 1;
-  const pageSize = Number(req.query.pageSize) || 10;
+  const page = Number(req.query.page) || DEFAULT_PAGE_PAGINATION;
+  const pageSize = Number(req.query.pageSize) || DEFAULT_PAGE_SIZE;
 
   const { orders, totalCount: totalCountString } =
     await fetchOrdersByCustomerId(customer.customer_id, page, pageSize);
