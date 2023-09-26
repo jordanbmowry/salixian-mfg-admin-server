@@ -16,33 +16,9 @@ import { authenticateJWT } from '../../auth/authMiddleware';
 import { ensureAdmin } from '../../auth/ensureAdmin';
 import { validateDataInBody } from '../../errors/validateDataInBody';
 import { sanitizeRequestBody } from '../../utils/sanitizeMiddleware';
-import Joi from 'joi';
+import { HttpStatusCode } from '../../errors/httpStatusCode';
+import { customerSchema } from '../../errors/joiValidationSchemas';
 import type { Customer, CustomerListOptions } from '../../types/types';
-
-const NOT_FOUND = 404;
-const BAD_REQUEST = 400;
-
-const customerSchema = Joi.object({
-  customer_id: Joi.string(),
-  first_name: Joi.string().required(),
-  last_name: Joi.string().required(),
-  email: Joi.string().email().required(),
-  phone_number: Joi.string()
-    .pattern(/^\d{3}-\d{2}-\d{4}$/)
-    .required(),
-  shipping_address: Joi.string().allow(null, ''),
-  shipping_city: Joi.string().allow(null, ''),
-  shipping_state: Joi.string().allow(null, ''),
-  shipping_zip: Joi.string().allow(null, ''),
-  billing_address: Joi.string().allow(null, ''),
-  billing_city: Joi.string().allow(null, ''),
-  billing_state: Joi.string().allow(null, ''),
-  billing_zip: Joi.string().allow(null, ''),
-  notes: Joi.string().allow(null, ''),
-  created_at: Joi.date(),
-  updated_at: Joi.date(),
-  deleted_at: Joi.date().allow(null),
-}).unknown(false);
 
 async function handleCreate(
   req: Request,
@@ -98,7 +74,9 @@ export async function customerExists(
   const customerId = req.params.customerId ?? req.body.data.customer_id;
 
   if (!customerId) {
-    res.status(BAD_REQUEST).send({ error: 'Customer ID is required' });
+    res
+      .status(HttpStatusCode.BAD_REQUEST)
+      .send({ error: 'Customer ID is required' });
     return;
   }
 
@@ -109,7 +87,7 @@ export async function customerExists(
   }
   next(
     new AppError(
-      NOT_FOUND,
+      HttpStatusCode.NOT_FOUND,
       `Customer ${req.params.customerId} cannot be found.`
     )
   );
@@ -172,7 +150,7 @@ async function handleHardDelete(req: Request, res: Response): Promise<void> {
   const { customer } = res.locals;
   logMethod(req, 'handleHardDelete');
   await destroy(customer.customer_id);
-  res.sendStatus(204);
+  res.sendStatus(HttpStatusCode.NO_CONTENT);
 }
 
 async function handleGetCustomerWithOrders(

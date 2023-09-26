@@ -17,29 +17,8 @@ import { authenticateJWT } from '../../auth/authMiddleware';
 import { Order } from '../../types/types';
 import { validateDataInBody } from '../../errors/validateDataInBody';
 import { sanitizeRequestBody } from '../../utils/sanitizeMiddleware';
-import Joi from 'joi';
-
-const NOT_FOUND = 404;
-const BAD_REQUEST = 400;
-
-const orderSchema = Joi.object({
-  order_date: Joi.date().required(),
-  order_description: Joi.string().allow(null, ''),
-  customer_cost: Joi.number().required(),
-  input_expenses: Joi.number(),
-  taxes_fees: Joi.number(),
-  shipping_cost: Joi.number(),
-  total_write_off: Joi.number(),
-  profit: Joi.number(),
-  notes: Joi.string().allow(null, ''),
-  order_status: Joi.string()
-    .valid('pending', 'in progress', 'complete', 'canceled')
-    .required(),
-  payment_status: Joi.string()
-    .valid('not paid', 'partially paid', 'fully paid')
-    .required(),
-  customer_id: Joi.string().allow(null, '').required(),
-}).unknown(false);
+import { HttpStatusCode } from '../../errors/httpStatusCode';
+import { orderSchema } from '../../errors/joiValidationSchemas';
 
 async function orderExists(
   req: Request,
@@ -52,7 +31,12 @@ async function orderExists(
     res.locals.order = order;
     return next();
   }
-  next(new AppError(NOT_FOUND, `Order ${req.params.orderId} cannot be found.`));
+  next(
+    new AppError(
+      HttpStatusCode.NOT_FOUND,
+      `Order ${req.params.orderId} cannot be found.`
+    )
+  );
 }
 
 async function listOrders(req: Request, res: Response): Promise<void> {
@@ -87,7 +71,7 @@ async function handleCreate(
   logMethod(req, 'handleCreate');
   const orderData: Partial<Order> = req.body?.data;
   const createdOrder = await create(orderData);
-  res.status(201).json({
+  res.status(HttpStatusCode.CREATED).json({
     status: 'success',
     data: createdOrder,
     message: 'Created order',
@@ -120,7 +104,7 @@ async function handleSoftDelete(
   const { orderId } = req.params;
   await softDelete(orderId);
   res
-    .status(200)
+    .status(HttpStatusCode.OK)
     .json({ message: `Order ${orderId} soft deleted successfully.` });
 }
 
@@ -128,7 +112,7 @@ async function handleHardDelete(req: Request, res: Response): Promise<void> {
   const { order } = res.locals;
   logMethod(req, 'handleHardDelete');
   await destroy(order.order_id);
-  res.sendStatus(204);
+  res.sendStatus(HttpStatusCode.NO_CONTENT);
 }
 
 export default {

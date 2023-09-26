@@ -20,9 +20,10 @@ import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
 import { ensureAdmin } from '../../auth/ensureAdmin';
 import type { User } from '../../types/types';
-import Joi from 'joi';
+import { userSchema } from '../../errors/joiValidationSchemas';
 import path from 'path';
 import { Worker } from 'worker_threads';
+import { HttpStatusCode } from '../../errors/httpStatusCode';
 
 const { NODE_ENV = 'development', RAILWAY_PROJECT_ROOT } = process.env;
 
@@ -36,18 +37,7 @@ const relativePath = path.join(BASE_PATH, 'dist/auth/hashWorker.js');
 const absolutePath = path.resolve(relativePath);
 
 const worker = new Worker(absolutePath);
-const userSchema = Joi.object({
-  email: Joi.string().email().required(),
-  role: Joi.string().allow(null, ''),
-  first_name: Joi.string().allow(null, ''),
-  last_name: Joi.string().allow(null, ''),
-  password: Joi.string().required(),
-  user_id: Joi.string().allow(null, ''),
-}).unknown(false);
 
-const NOT_FOUND = 404;
-const BAD_REQUEST = 400;
-const INTERNAL_SERVER_ERROR = 500;
 interface RequestWithUser extends Request {
   user?: Record<string, any>;
 }
@@ -72,7 +62,12 @@ async function userExists(
   if (whereObj) {
     await checkAndSetUser(req, whereObj, next, res);
   } else {
-    next(new AppError(BAD_REQUEST, 'Invalid user identifier provided.'));
+    next(
+      new AppError(
+        HttpStatusCode.BAD_REQUEST,
+        'Invalid user identifier provided.'
+      )
+    );
   }
 }
 
@@ -97,7 +92,10 @@ async function checkAndSetUser(
     }
 
     next(
-      new AppError(NOT_FOUND, `User ${userIndentification} cannot be found.`)
+      new AppError(
+        HttpStatusCode.NOT_FOUND,
+        `User ${userIndentification} cannot be found.`
+      )
     );
   }
 }
@@ -120,7 +118,7 @@ async function createUser(req: RequestWithUser, res: Response): Promise<void> {
 
   const validation = userSchema.validate(req.body.data);
   if (validation.error) {
-    throw new AppError(BAD_REQUEST, validation.error.message);
+    throw new AppError(HttpStatusCode.BAD_REQUEST, validation.error.message);
   }
 
   const password = await hashPassword(req.body.data.password);
@@ -141,7 +139,7 @@ async function updateUser(req: RequestWithUser, res: Response): Promise<void> {
 
   const validation = userSchema.validate(req.body.data);
   if (validation.error) {
-    throw new AppError(BAD_REQUEST, validation.error.message);
+    throw new AppError(HttpStatusCode.BAD_REQUEST, validation.error.message);
   }
 
   const updatedUser: UserForUpdate = {
@@ -192,27 +190,21 @@ async function login(
     const message = !passwordEntered
       ? 'Password is required.'
       : 'Invalid username.';
-    res.status(BAD_REQUEST).send({ message });
+    next(new AppError(HttpStatusCode.BAD_REQUEST, message));
     return;
   }
 
   const passwordIsValid = await bcrypt.compare(passwordEntered, hashedPassword);
   if (!passwordIsValid) {
-    res.status(BAD_REQUEST).send({ message: 'Invalid password.' });
-    return;
-  }
-
-  if (!process.env.JWT_SECRET_KEY) {
-    res
-      .status(INTERNAL_SERVER_ERROR)
-      .send({ message: 'Internal server error.' });
+    next(new AppError(HttpStatusCode.BAD_REQUEST, 'Invalid password.'));
     return;
   }
 
   const { role } = res.locals.user;
-  const privateKey = Buffer.from(process.env.JWT_SECRET_KEY, 'base64').toString(
-    'utf8'
-  );
+  const privateKey = Buffer.from(
+    process.env.JWT_SECRET_KEY!,
+    'base64'
+  ).toString('utf8');
   const token = jwt.sign({ username: email, id: user_id, role }, privateKey, {
     algorithm: 'RS256',
     expiresIn: '30d',
