@@ -17,15 +17,24 @@ This project is a server for managing users, customers, and orders for Salixian 
    npm install
    ```
 4. Set the required environment variables in a `.env` file. See the section below for details.
-5. Start the server:
+
+5. build the project:
+
    ```bash
-   npm start
+   npm run build
+   ```
+
+6. Start the server:
+   ```bash
+   npm run dev
    ```
 
 ## Environment Variables
 
 - `JWT_SECRET_KEY`: The secret key used for signing and verifying JSON Web Tokens.
-- `DB_CONNECTION_STRING`: The connection string for the database.
+- `DEVELOPMENT_DATABASE_URL`: The connection string for the development database.
+- `PRODUCTION_DATABASE_URL`: The connection string for the development database.
+  check out the .env.sample file
 
 ## users
 
