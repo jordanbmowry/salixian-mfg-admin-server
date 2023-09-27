@@ -34,7 +34,7 @@ This project is a server for managing users, customers, and orders for Salixian 
 - `JWT_SECRET_KEY`: The secret key used for signing and verifying JSON Web Tokens.
 - `DEVELOPMENT_DATABASE_URL`: The connection string for the development database.
 - `PRODUCTION_DATABASE_URL`: The connection string for the development database.
-- The connection string for the development database.
+- Check out the .env.sample file for additional hints.
 
 ## users
 
