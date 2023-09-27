@@ -1,6 +1,14 @@
 import jwt, { VerifyErrors } from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 
+interface DecodedPayload {
+  username: string;
+  id: string;
+  role: string;
+  iat: number;
+  exp: number;
+}
+
 export const authenticateJWT = (
   req: Request,
   res: Response,
@@ -31,7 +39,7 @@ export const authenticateJWT = (
     }
 
     if (decoded) {
-      (req as any).user = decoded as Record<string, any>;
+      (req as any).user = decoded as DecodedPayload;
       next();
     } else {
       res.status(400).json({ message: 'Invalid token.' });
