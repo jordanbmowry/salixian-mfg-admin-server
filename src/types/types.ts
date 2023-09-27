@@ -77,6 +77,8 @@ export interface CustomerListOptions {
   phoneNumber?: string;
   sortBy?: string;
   order?: 'desc' | 'asc';
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface PaginationOptions {

@@ -79,21 +79,43 @@ export async function list(
   }
 
   if (options.email) {
-    query = query.whereRaw('email LIKE ?', [`%${options.email}%`]);
+    query = query.where(
+      knex.raw('LOWER(email)'),
+      'LIKE',
+      `${options.email.toLowerCase()}%`
+    );
   }
 
   if (options.phoneNumber) {
-    query = query.whereRaw('phone_number LIKE ?', [`%${options.phoneNumber}%`]);
+    query = query.where(
+      knex.raw('LOWER(phone_number)'),
+      'LIKE',
+      `${options.phoneNumber.toLowerCase()}%`
+    );
   }
 
-  // Default to ordering by 'id' if sortBy is not provided
-  const orderBy = options.sortBy || 'id';
-  // Default to ascending order if order is not provided
+  if (options.firstName) {
+    query = query.where(
+      knex.raw('LOWER(first_name)'),
+      'LIKE',
+      `${options.firstName.toLowerCase()}%`
+    );
+  }
+
+  if (options.lastName) {
+    query = query.where(
+      knex.raw('LOWER(last_name)'),
+      'LIKE',
+      `${options.lastName.toLowerCase()}%`
+    );
+  }
+
+  const orderBy = options.sortBy || 'customer_id';
   const order = options.order || 'asc';
 
   return paginate<Customer>(query, {
-    page: options.page ?? 1,
-    pageSize: options.pageSize ?? 10,
+    page: options.page ?? DEFAULT_PAGE_PAGINATION,
+    pageSize: options.pageSize ?? DEFAULT_PAGE_SIZE,
     orderBy,
     order,
   });
@@ -114,8 +136,8 @@ export async function destroy(customer_id: string) {
 
 export async function fetchOrdersByCustomerId(
   customer_id: string,
-  page: number = 1,
-  pageSize: number = 10,
+  page: number = DEFAULT_PAGE_PAGINATION,
+  pageSize: number = DEFAULT_PAGE_SIZE,
   orderBy: string = 'order_id',
   order: 'asc' | 'desc' = 'asc'
 ): Promise<PaginationResult<Order>> {
@@ -123,7 +145,7 @@ export async function fetchOrdersByCustomerId(
   return paginate<Order>(query, {
     page,
     pageSize,
-    orderBy, // use the orderBy parameter
-    order, // use the order parameter
+    orderBy,
+    order,
   });
 }

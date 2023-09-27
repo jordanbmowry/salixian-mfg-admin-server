@@ -58,19 +58,35 @@ export async function listOrdersWithCustomers(
   }
 
   if (options.phoneNumber) {
-    query = query.where('c.phone_number', 'like', `%${options.phoneNumber}%`);
+    query = query.where(
+      knex.raw('LOWER(c.phone_number)'),
+      'LIKE',
+      `${options.phoneNumber.toLowerCase()}%`
+    );
   }
 
   if (options.email) {
-    query = query.where('c.email', 'like', `%${options.email}%`);
+    query = query.where(
+      knex.raw('LOWER(c.email)'),
+      'LIKE',
+      `${options.email.toLowerCase()}%`
+    );
   }
 
   if (options.firstName) {
-    query = query.where('c.first_name', 'like', `%${options.firstName}%`);
+    query = query.where(
+      knex.raw('LOWER(c.first_name)'),
+      'LIKE',
+      `${options.firstName.toLowerCase()}%`
+    );
   }
 
   if (options.lastName) {
-    query = query.where('c.last_name', 'like', `%${options.lastName}%`);
+    query = query.where(
+      knex.raw('LOWER(c.last_name)'),
+      'LIKE',
+      `${options.lastName.toLowerCase()}%`
+    );
   }
 
   const orderBy = options.sortBy || 'o.order_id';
