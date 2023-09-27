@@ -26,6 +26,7 @@ import type { User } from '../../types/types';
 import { userSchema } from '../../errors/joiValidationSchemas';
 import path from 'path';
 import { Worker } from 'worker_threads';
+import argon2 from 'argon2';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { checkDuplicate } from '../../errors/checkDuplicates';
 
@@ -204,10 +205,8 @@ async function login(
     return;
   }
 
-  const [passwordIsValid] = await Promise.all([
-    bcrypt.compare(passwordEntered, hashedPassword),
-    updateLastLogin(user_id),
-  ]);
+  const passwordIsValid = await argon2.verify(hashedPassword, passwordEntered);
+  await updateLastLogin(user_id);
 
   if (!passwordIsValid) {
     next(new AppError(HttpStatusCode.BAD_REQUEST, 'Invalid password.'));

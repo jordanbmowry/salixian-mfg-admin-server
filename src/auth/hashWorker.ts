@@ -1,20 +1,21 @@
 import { parentPort } from 'worker_threads';
-import bcrypt from 'bcrypt';
+import argon2 from 'argon2';
 import { AppError } from '../errors/AppError';
 
-interface BcryptError extends Error {
+// Interface for possible error type
+interface ArgonError extends Error {
   code?: number;
 }
 
-const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
-
 async function hashPassword(password: string): Promise<string> {
   try {
-    const hash = await bcrypt.hash(password, SALT_ROUNDS);
+    // Using argon2 to hash the password
+    const hash = await argon2.hash(password);
     return hash;
   } catch (error) {
-    const bcryptError = error as BcryptError;
-    throw new AppError(bcryptError.code || 500, bcryptError.message);
+    // Asserting error as ArgonError type for better type safety
+    const argonError = error as ArgonError;
+    throw new AppError(argonError.code || 500, argonError.message);
   }
 }
 
@@ -23,9 +24,15 @@ parentPort!.on('message', async (password: string) => {
     const hash = await hashPassword(password);
     parentPort!.postMessage({ hash });
   } catch (error) {
-    const bcryptError = error as BcryptError;
-    parentPort!.postMessage({
-      error: bcryptError.message || 'Error hashing password',
-    });
+    // Checking if error is instance of Error before accessing message property
+    if (error instanceof Error) {
+      parentPort!.postMessage({
+        error: error.message || 'Error hashing password',
+      });
+    } else {
+      parentPort!.postMessage({
+        error: 'An unknown error occurred while hashing the password.',
+      });
+    }
   }
 });
