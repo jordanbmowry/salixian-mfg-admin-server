@@ -258,6 +258,7 @@ export default {
   ],
   update: [
     authenticateJWT,
+    ensureAdmin,
     sanitizeRequestBody,
     sanitizeParams,
     bodyHasDataProperty,
