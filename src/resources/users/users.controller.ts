@@ -27,6 +27,7 @@ import { userSchema } from '../../errors/joiValidationSchemas';
 import path from 'path';
 import { Worker } from 'worker_threads';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
+import { checkDuplicate } from '../../errors/checkDuplicates';
 
 const { NODE_ENV = 'development', RAILWAY_PROJECT_ROOT } = process.env;
 
@@ -247,6 +248,7 @@ export default {
     ensureAdmin,
     sanitizeRequestBody,
     bodyHasDataProperty,
+    checkDuplicate({ table: 'users', fields: ['email'] }),
     asyncErrorBoundary(createUser),
   ],
   read: [
@@ -261,6 +263,7 @@ export default {
     sanitizeParams,
     bodyHasDataProperty,
     asyncErrorBoundary(userExists),
+    checkDuplicate({ table: 'users', fields: ['email'] }),
     asyncErrorBoundary(updateUser),
   ],
   delete: [

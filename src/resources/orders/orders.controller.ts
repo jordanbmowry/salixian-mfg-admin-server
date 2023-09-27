@@ -200,6 +200,7 @@ export default {
     sanitizeParams,
     bodyHasDataProperty,
     asyncErrorBoundary(orderExists),
+    asyncErrorBoundary(customerExists),
     validateDataInBody(orderSchema),
     asyncErrorBoundary(handleUpdate),
   ],

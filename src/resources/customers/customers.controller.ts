@@ -23,6 +23,7 @@ import {
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { customerSchema } from '../../errors/joiValidationSchemas';
 import type { Customer, CustomerListOptions } from '../../types/types';
+import { checkDuplicate } from '../../errors/checkDuplicates';
 
 const { DEFAULT_PAGE_PAGINATION = 1, DEFAULT_PAGE_SIZE = 10 } = process.env;
 
@@ -94,7 +95,7 @@ export async function customerExists(
   next(
     new AppError(
       HttpStatusCode.NOT_FOUND,
-      `Customer ${req.params.customerId} cannot be found.`
+      `Customer ${customerId} cannot be found.`
     )
   );
 }
@@ -117,6 +118,8 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
       endDate,
       email,
       phoneNumber,
+      firstName,
+      lastName,
       sortBy,
       order,
     } = req.query;
@@ -128,6 +131,8 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
       endDate: endDate ? new Date(endDate as string) : undefined,
       email: (email as string) || undefined,
       phoneNumber: (phoneNumber as string) || undefined,
+      firstName: (firstName as string) || undefined,
+      lastName: (lastName as string) || undefined,
       sortBy: (sortBy as string) || undefined,
       order: (order as 'asc' | 'desc') || undefined,
     };
@@ -148,17 +153,11 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
       status: 'success',
     });
   } catch (error) {
-    if (error instanceof Error) {
-      res.status(500).json({
-        message: error.message || 'An error occurred',
-        status: 'error',
-      });
-    } else {
-      res.status(500).json({
-        message: 'An unknown error occurred',
-        status: 'error',
-      });
-    }
+    res.status(500).json({
+      message:
+        error instanceof Error ? error.message : 'An unknown error occurred',
+      status: 'error',
+    });
   }
 }
 
@@ -211,6 +210,7 @@ export default {
     sanitizeRequestBody,
     bodyHasDataProperty,
     validateDataInBody(customerSchema),
+    checkDuplicate({ table: 'customers', fields: ['email', 'phone_number'] }),
     asyncErrorBoundary(handleCreate),
   ],
   list: [authenticateJWT, sanitizeQuery, asyncErrorBoundary(listCustomers)],
@@ -222,6 +222,7 @@ export default {
     sanitizeParams,
     asyncErrorBoundary(customerExists),
     validateDataInBody(customerSchema),
+    checkDuplicate({ table: 'customers', fields: ['email', 'phone_number'] }),
     asyncErrorBoundary(handleUpdate),
   ],
   softDelete: [
