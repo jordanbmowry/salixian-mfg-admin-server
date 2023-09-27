@@ -1,10 +1,49 @@
 # Salixian MFG Admin Server
 
+This project is a server for managing users, customers, and orders for Salixian MFG. It provides API endpoints for performing CRUD operations on users, customers, and orders.
+
+## Installation and Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/jordanbmowry/salixian-mfg-admin-server.git
+   ```
+2. Navigate to the project directory:
+   ```bash
+   cd salixian-mfg-admin-server
+   ```
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+4. Set the required environment variables in a `.env` file. See the section below for details.
+5. Start the server:
+   ```bash
+   npm start
+   ```
+
+## Environment Variables
+
+- `JWT_SECRET_KEY`: The secret key used for signing and verifying JSON Web Tokens.
+- `DB_CONNECTION_STRING`: The connection string for the database.
+
 ## users
 
 ```http
   GET /users
 ```
+
+```http
+  GET /users/:userId
+```
+
+#### Read user
+
+Must be authenticated to access route.
+
+| Parameter | Type     | Description                         |
+| :-------- | :------- | :---------------------------------- |
+| `userId`  | `string` | **Required**. user_id to fetch user |
 
 #### List all users
 
@@ -133,6 +172,80 @@ Must be authenticated and have admin role to access route.
 | Parameter    | Type     | Description                                                        |
 | :----------- | :------- | :----------------------------------------------------------------- |
 | `customerId` | `string` | **Required**. customer_id of customer to fetch customer and orders |
+
+## Orders
+
+#### List all orders
+
+Must be authenticated to access route.
+
+```http
+  GET /orders
+```
+
+```http
+  GET /orders/:orderId
+```
+
+#### Read order
+
+Must be authenticated to access route.
+
+| Parameter | Type     | Description                              |
+| :-------- | :------- | :--------------------------------------- |
+| `orderId` | `string` | **Required**. order_id of order to fetch |
+
+```http
+  GET /orders/hard-delete/:orderId
+```
+
+#### Delete order
+
+Must be authenticated to access route.
+
+| Parameter | Type     | Description                               |
+| :-------- | :------- | :---------------------------------------- |
+| `orderId` | `string` | **Required**. order_id of order to delete |
+
+```http
+  GET /orders/soft-delete/:orderId
+```
+
+#### Soft delete order
+
+Must be authenticated to access route.
+
+| Parameter | Type     | Description                                    |
+| :-------- | :------- | :--------------------------------------------- |
+| `orderId` | `string` | **Required**. order_id of order to soft delete |
+
+```http
+  PUT /orders/:orderId
+```
+
+#### Update order
+
+Must be authenticated to access route.
+
+| Parameter | Type     | Description                               |
+| :-------- | :------- | :---------------------------------------- |
+| `orderId` | `string` | **Required**. order_id of order to delete |
+
+```http
+  PUT /orders/orders-with-customer
+```
+
+#### List orders with customer for order
+
+Must be authenticated to access route.
+
+```http
+  POST /orders
+```
+
+#### Create order
+
+Must be authenticated to access route.
 
 ## Authors
 
