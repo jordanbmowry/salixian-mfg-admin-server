@@ -241,6 +241,11 @@ function logout(req: RequestWithUser, res: Response) {
   res.json({ status: 'success', message: 'Successfully logged out.' });
 }
 
+function checkAuthStatus(req: RequestWithUser, res: Response) {
+  logMethod(req, 'checkAuthStatus');
+  res.json({ isAuthenticated: true });
+}
+
 export default {
   create: [
     authenticateJWT,
@@ -282,4 +287,5 @@ export default {
     asyncErrorBoundary(login),
   ],
   logout: [logout],
+  checkAuthStatus: [authenticateJWT, checkAuthStatus],
 };

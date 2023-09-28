@@ -1,11 +1,27 @@
 import express, { Response } from 'express';
 
 export function setTokenCookie(res: Response, token: string) {
-  const cookieOptions: express.CookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-  };
+  let cookieOptions: express.CookieOptions;
+
+  console.log(process.env.NODE_ENV);
+
+  if (process.env.NODE_ENV === 'production') {
+    // Production settings
+    cookieOptions = {
+      httpOnly: true,
+      secure: true, // ensure cookies are sent over HTTPS
+      sameSite: 'none', // allow browser to send cookie with cross-origin requests
+      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    };
+  } else {
+    // Development settings
+    cookieOptions = {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax', // or 'strict'
+      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    };
+  }
 
   res.cookie('token', token, cookieOptions);
 }

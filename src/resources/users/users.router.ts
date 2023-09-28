@@ -7,6 +7,7 @@ const LOGIN_ROUTE = '/login';
 const LOGOUT_ROUTE = '/logout';
 const USER_ID_ROUTE = '/:userId([a-fA-F0-9-]{36}|[0-9]+)';
 const REGISTER_ROUTE = '/register';
+const AUTH_STATUS_ROUTE = '/auth/status';
 
 const router = Router();
 
@@ -24,5 +25,10 @@ router
   .all(methodNotAllowed);
 
 router.route(REGISTER_ROUTE).post(controller.create).all(methodNotAllowed);
+
+router
+  .route(AUTH_STATUS_ROUTE)
+  .get(controller.checkAuthStatus)
+  .all(methodNotAllowed);
 
 export default router;

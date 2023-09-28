@@ -12,6 +12,17 @@ import { AppError } from './errors/AppError';
 import { HttpStatusCode } from './errors/httpStatusCode';
 import type { CustomError } from './types/types';
 
+const {
+  NODE_ENV = 'development',
+  DEVELOPMENT_CLIENT_BASE_URL,
+  PRODUCTION_CLIENT_BASE_URL,
+} = process.env;
+
+const CLIENT_URL_BASE_URL =
+  NODE_ENV === 'development'
+    ? DEVELOPMENT_CLIENT_BASE_URL
+    : PRODUCTION_CLIENT_BASE_URL;
+
 const app: Application = express();
 
 const limiter = rateLimit({
@@ -22,7 +33,12 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later',
 });
 
-app.use(cors());
+app.use(
+  cors({
+    origin: CLIENT_URL_BASE_URL,
+    credentials: true,
+  })
+);
 app.use(helmet());
 app.use(express.json());
 app.use(pinoHttp({ logger }));
