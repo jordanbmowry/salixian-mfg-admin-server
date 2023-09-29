@@ -53,7 +53,7 @@ async function userExists(
   next: NextFunction
 ): Promise<void> {
   logMethod(req, 'userExists');
-  const userId = req.params.userId;
+  const userId = req.params.userId ?? req.user?.id;
   const email = req.body.data?.email;
 
   let whereObj: WhereObj | undefined;
@@ -243,7 +243,15 @@ function logout(req: RequestWithUser, res: Response) {
 
 function checkAuthStatus(req: RequestWithUser, res: Response) {
   logMethod(req, 'checkAuthStatus');
-  res.json({ isAuthenticated: true });
+  delete res.locals.user.password;
+  res.json({
+    status: 'success',
+    data: {
+      ...res.locals.user,
+      isAuthenticated: true,
+    },
+    message: 'Authenticated.',
+  });
 }
 
 export default {
@@ -287,5 +295,9 @@ export default {
     asyncErrorBoundary(login),
   ],
   logout: [logout],
-  checkAuthStatus: [authenticateJWT, checkAuthStatus],
+  checkAuthStatus: [
+    authenticateJWT,
+    asyncErrorBoundary(userExists),
+    checkAuthStatus,
+  ],
 };

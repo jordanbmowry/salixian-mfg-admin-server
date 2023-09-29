@@ -15,7 +15,7 @@ router.route(USERS_BASE_ROUTE).get(controller.list).all(methodNotAllowed);
 
 router.route(LOGIN_ROUTE).post(controller.login).all(methodNotAllowed);
 
-router.route(LOGOUT_ROUTE).post(controller.logout).all(methodNotAllowed);
+router.route(LOGOUT_ROUTE).get(controller.logout).all(methodNotAllowed);
 
 router
   .route(USER_ID_ROUTE)

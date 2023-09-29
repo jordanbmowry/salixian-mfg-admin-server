@@ -67,7 +67,7 @@ Must be be authenticated to access route.
 Do not need to be authenticated to access route.
 
 ```http
-  POST /users/logout
+  GET /users/logout
 ```
 
 #### Logout of server
