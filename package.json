@@ -37,7 +37,6 @@
   },
   "devDependencies": {
     "@total-typescript/ts-reset": "^0.5.1",
-    "@types/bcrypt": "^5.0.0",
     "@types/cookie-parser": "^1.4.4",
     "@types/cors": "^2.8.14",
     "@types/dotenv": "^8.2.0",
