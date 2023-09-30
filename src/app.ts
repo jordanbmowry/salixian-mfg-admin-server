@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import usersRouter from './resources/users/users.router';
 import customersRouter from './resources/customers/customers.router';
 import ordersRouter from './resources/orders/orders.router';
+import statsRouter from './resources/stats/stats.router';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import rateLimit from 'express-rate-limit';
@@ -48,6 +49,7 @@ app.use(limiter);
 app.use('/users', usersRouter);
 app.use('/customers', customersRouter);
 app.use('/orders', ordersRouter);
+app.use('/stats', statsRouter);
 
 app.use((req, res, next) => {
   next(new AppError(404, `Not found: ${req.originalUrl}`));
