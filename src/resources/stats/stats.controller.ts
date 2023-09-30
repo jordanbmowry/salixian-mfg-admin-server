@@ -2,7 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
 import { authenticateJWT } from '../../auth/authMiddleware';
 import { sanitizeQuery } from '../../utils/sanitizeMiddleware';
-import { countOrders, countCustomers, calculateRevenue } from './stats.service';
+import {
+  countOrders,
+  countCustomers,
+  calculateRevenue,
+  getMonthlyRevenue,
+  getOrderStatusDistribution,
+} from './stats.service';
 import { logMethod } from '../../config/logMethod';
 
 function isDateString(value: any): value is string {
@@ -32,11 +38,14 @@ export async function getDashboardStats(
       endDate = new Date(req.query.endDate);
     }
 
-    const [revenue, orderCount, customerCount] = await Promise.all([
-      calculateRevenue(startDate, endDate),
-      countOrders(startDate, endDate),
-      countCustomers(startDate, endDate),
-    ]);
+    const revenue = await calculateRevenue(startDate, endDate);
+    const orderCount = await countOrders(startDate, endDate);
+    const customerCount = await countCustomers(startDate, endDate);
+    const monthlyRevenue = await getMonthlyRevenue(startDate, endDate);
+    const orderStatusDistribution = await getOrderStatusDistribution(
+      startDate,
+      endDate
+    );
 
     res.json({
       status: 'success',
@@ -44,6 +53,8 @@ export async function getDashboardStats(
         revenue,
         orderCount,
         customerCount,
+        monthlyRevenue,
+        orderStatusDistribution,
       },
       message: 'Aggregate stats',
     });
