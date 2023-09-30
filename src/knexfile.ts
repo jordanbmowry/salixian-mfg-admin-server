@@ -29,8 +29,9 @@ const config: MyKnexConfig = {
     client: 'postgresql',
     pool: {
       min: 1,
-      max: 10,
-    },
+      max: 20,
+      idleTimeoutMillis: 30000,
+    } as any,
     connection: DB_URL,
     migrations: {
       directory: path.join(__dirname, 'db', 'migrations'),
@@ -44,8 +45,9 @@ const config: MyKnexConfig = {
     connection: DB_URL,
     pool: {
       min: 1,
-      max: 10,
-    },
+      max: 20,
+      idleTimeoutMillis: 30000,
+    } as any,
     migrations: {
       directory: path.join(__dirname, 'db', 'migrations'),
     },
