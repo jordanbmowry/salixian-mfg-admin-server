@@ -1,11 +1,12 @@
-import knex from '../../db/connection';
+import db from '../../db/connection';
 
 export async function calculateRevenue(
+  trx: any,
   startDate?: Date,
   endDate?: Date
 ): Promise<number> {
   try {
-    let query = knex('orders').sum('customer_cost as result');
+    let query = trx('orders').sum('customer_cost as result');
 
     if (startDate && endDate) {
       query.whereBetween('order_date', [startDate, endDate]);
@@ -23,11 +24,12 @@ export async function calculateRevenue(
 }
 
 export async function countOrders(
+  trx: any,
   startDate?: Date,
   endDate?: Date
 ): Promise<number> {
   try {
-    let query = knex('orders').count('order_id as result');
+    let query = db('orders').count('order_id as result');
 
     if (startDate && endDate) {
       query.whereBetween('order_date', [startDate, endDate]);
@@ -45,11 +47,12 @@ export async function countOrders(
 }
 
 export async function countCustomers(
+  trx: any,
   startDate?: Date,
   endDate?: Date
 ): Promise<number> {
   try {
-    let query = knex('customers').count('customer_id as result');
+    let query = trx('customers').count('customer_id as result');
 
     if (startDate && endDate) {
       query.whereBetween('created_at', [startDate, endDate]);
@@ -66,14 +69,23 @@ export async function countCustomers(
   }
 }
 
+interface QueryResult {
+  month: number;
+  year: number;
+  revenue?: number;
+  order_status?: string;
+  count?: number;
+}
+
 export async function getMonthlyRevenue(
+  trx: any,
   startDate?: Date,
   endDate?: Date
 ): Promise<{ months: string[]; revenues: number[] }> {
   try {
-    let query = knex('orders')
+    let query = trx('orders')
       .select(
-        knex.raw(
+        trx.raw(
           'EXTRACT(YEAR FROM order_date) as year, EXTRACT(MONTH FROM order_date) as month, SUM(customer_cost) as revenue'
         )
       )
@@ -89,13 +101,13 @@ export async function getMonthlyRevenue(
       query.whereBetween('order_date', [startOfYear, now]);
     }
 
-    const results = await query;
+    const results: any = await query;
 
     return {
       months: results.map(
-        (r) => `${String(r.month).padStart(2, '0')}-${r.year}`
+        (r: any) => `${String(r.month ?? 0).padStart(2, '0')}-${r.year ?? 0}`
       ),
-      revenues: results.map((r) => parseFloat(r.revenue)),
+      revenues: results.map((r: any) => parseFloat(r.revenue)),
     };
   } catch (error) {
     throw new Error(
@@ -105,13 +117,14 @@ export async function getMonthlyRevenue(
 }
 
 export async function getOrderStatusDistribution(
+  trx: any,
   startDate?: Date,
   endDate?: Date
 ): Promise<{ date: string[]; statuses: string[]; counts: number[] }> {
   try {
-    let query = knex('orders')
+    let query = trx('orders')
       .select(
-        knex.raw(
+        trx.raw(
           'EXTRACT(YEAR FROM order_date) as year, EXTRACT(MONTH FROM order_date) as month, order_status'
         )
       )
@@ -129,7 +142,12 @@ export async function getOrderStatusDistribution(
       query.whereBetween('order_date', [startOfYear, now]);
     }
 
-    const results = await query;
+    const results: Array<{
+      month: number | undefined;
+      year: number | undefined;
+      order_status: string;
+      count: number;
+    }> = await query;
 
     return {
       date: results.map((r) => `${String(r.month).padStart(2, '0')}-${r.year}`),
@@ -141,4 +159,43 @@ export async function getOrderStatusDistribution(
       `Failed to fetch order status distribution: ${(error as Error).message}`
     );
   }
+}
+
+type DashboardStats = {
+  revenue: number;
+  orderCount: number;
+  customerCount: number;
+  monthlyRevenue: { months: string[]; revenues: number[] };
+  orderStatusDistribution: {
+    date: string[];
+    statuses: string[];
+    counts: number[];
+  };
+};
+
+export async function getAggregateStats(startDate?: Date, endDate?: Date) {
+  return db.transaction(async (trx) => {
+    try {
+      const revenue = await calculateRevenue(trx, startDate, endDate);
+      const orderCount = await countOrders(trx, startDate, endDate);
+      const customerCount = await countCustomers(trx, startDate, endDate);
+      const monthlyRevenue = await getMonthlyRevenue(trx, startDate, endDate);
+      const orderStatusDistribution = await getOrderStatusDistribution(
+        trx,
+        startDate,
+        endDate
+      );
+
+      return {
+        revenue,
+        orderCount,
+        customerCount,
+        monthlyRevenue,
+        orderStatusDistribution,
+      };
+    } catch (error) {
+      await trx.rollback();
+      throw error;
+    }
+  });
 }
