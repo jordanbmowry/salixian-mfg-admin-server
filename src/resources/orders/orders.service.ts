@@ -37,6 +37,7 @@ export async function listOrdersWithCustomers(
     .select([
       'o.order_id',
       'o.order_date',
+      'o.updated_at',
       'o.order_status',
       'o.payment_status',
       'o.created_at as order_created_at',
