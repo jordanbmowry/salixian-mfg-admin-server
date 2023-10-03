@@ -15,7 +15,7 @@ export const customerSchema = Joi.object({
   last_name: Joi.string().required(),
   email: Joi.string().email().required(),
   phone_number: Joi.string()
-    .pattern(/^\d{3}-\d{2}-\d{4}$/)
+    .pattern(/^\d{3}-\d{3}-\d{4}$/) // Corrected this line
     .required(),
   shipping_address: Joi.string().allow(null, ''),
   shipping_city: Joi.string().allow(null, ''),
