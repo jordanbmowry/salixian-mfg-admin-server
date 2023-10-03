@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import knex from '../db/connection';
 import { AppError } from './AppError';
 import { HttpStatusCode } from './httpStatusCode';
+import { logMethod } from '../config/logMethod';
 
 interface CheckDuplicateOptions {
   table: string;
@@ -14,6 +15,7 @@ export function checkDuplicate({ table, fields }: CheckDuplicateOptions) {
     res: Response,
     next: NextFunction
   ): Promise<void> => {
+    logMethod(req, 'checkDuplicate');
     try {
       const queries = fields.map((field) => {
         const value = req.body.data[field];
