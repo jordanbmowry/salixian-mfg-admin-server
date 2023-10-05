@@ -210,7 +210,12 @@ export default {
     sanitizeRequestBody,
     bodyHasDataProperty,
     validateDataInBody(customerSchema),
-    checkDuplicate({ table: 'customers', fields: ['email', 'phone_number'] }),
+    checkDuplicate({
+      table: 'customers',
+      fields: ['email', 'phone_number'],
+      primaryKey: 'customer_id',
+      paramKey: 'customerId',
+    }),
     asyncErrorBoundary(handleCreate),
   ],
   list: [authenticateJWT, sanitizeQuery, asyncErrorBoundary(listCustomers)],
@@ -222,7 +227,12 @@ export default {
     sanitizeParams,
     asyncErrorBoundary(customerExists),
     validateDataInBody(customerSchema),
-    checkDuplicate({ table: 'customers', fields: ['email', 'phone_number'] }),
+    checkDuplicate({
+      table: 'customers',
+      fields: ['email', 'phone_number'],
+      primaryKey: 'customer_id',
+      paramKey: 'customerId',
+    }),
     asyncErrorBoundary(handleUpdate),
   ],
   softDelete: [

@@ -22,7 +22,10 @@ import { logMethod } from '../../config/logMethod';
 import { authenticateJWT } from '../../auth/authMiddleware';
 import { ensureAdmin } from '../../auth/ensureAdmin';
 import type { User } from '../../types/types';
-import { userSchema } from '../../errors/joiValidationSchemas';
+import {
+  userSchema,
+  userUpdateSchema,
+} from '../../errors/joiValidationSchemas';
 import path from 'path';
 import { Worker } from 'worker_threads';
 import argon2 from 'argon2';
@@ -147,7 +150,7 @@ interface UserForUpdate extends User {
 async function updateUser(req: RequestWithUser, res: Response): Promise<void> {
   logMethod(req, 'updateUser');
 
-  const validation = userSchema.validate(req.body.data);
+  const validation = userUpdateSchema.validate(req.body.data);
   if (validation.error) {
     throw new AppError(HttpStatusCode.BAD_REQUEST, validation.error.message);
   }
@@ -259,7 +262,12 @@ export default {
     ensureAdmin,
     sanitizeRequestBody,
     bodyHasDataProperty,
-    checkDuplicate({ table: 'users', fields: ['email'] }),
+    checkDuplicate({
+      table: 'users',
+      fields: ['email'],
+      primaryKey: 'user_id',
+      paramKey: 'userId',
+    }),
     asyncErrorBoundary(createUser),
   ],
   read: [
@@ -275,7 +283,12 @@ export default {
     sanitizeParams,
     bodyHasDataProperty,
     asyncErrorBoundary(userExists),
-    checkDuplicate({ table: 'users', fields: ['email'] }),
+    checkDuplicate({
+      table: 'users',
+      fields: ['email'],
+      primaryKey: 'user_id',
+      paramKey: 'userId',
+    }),
     asyncErrorBoundary(updateUser),
   ],
   delete: [
