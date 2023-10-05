@@ -9,6 +9,17 @@ export const userSchema = Joi.object({
   user_id: Joi.string().allow(null, ''),
 }).unknown(false);
 
+export const userUpdateSchema = userSchema
+  .keys({
+    email: Joi.string().email().optional(),
+    role: Joi.string().allow(null, '').optional(),
+    first_name: Joi.string().allow(null, '').optional(),
+    last_name: Joi.string().allow(null, '').optional(),
+    password: Joi.string().optional(),
+    user_id: Joi.string().allow(null, '').optional(),
+  })
+  .unknown(false);
+
 export const customerSchema = Joi.object({
   customer_id: Joi.string(),
   first_name: Joi.string().required(),
