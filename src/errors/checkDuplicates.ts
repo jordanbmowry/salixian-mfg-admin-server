@@ -7,22 +7,37 @@ import { logMethod } from '../config/logMethod';
 interface CheckDuplicateOptions {
   table: string;
   fields: string[];
+  primaryKey: string;
+  paramKey: string;
 }
 
-export function checkDuplicate({ table, fields }: CheckDuplicateOptions) {
+export function checkDuplicate({
+  table,
+  fields,
+  primaryKey,
+  paramKey,
+}: CheckDuplicateOptions) {
   return async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     logMethod(req, 'checkDuplicate');
+
     try {
+      const entityId = req.params[paramKey]; // Change this line
+
       const queries = fields.map((field) => {
         const value = req.body.data[field];
-        return knex(table)
-          .where({ [field]: value })
-          .first()
-          .then((result) => ({ field, result }));
+
+        let query = knex(table).where({ [field]: value });
+
+        // Add the condition only if entityId is defined
+        if (entityId) {
+          query = query.whereNot({ [primaryKey]: entityId });
+        }
+
+        return query.first().then((result) => ({ field, result }));
       });
 
       const results = await Promise.all(queries);
