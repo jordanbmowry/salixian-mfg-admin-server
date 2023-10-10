@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "npx tsc",
-    "start": "node dist/server.js",
+    "start": "node_modules/.bin/pm2-runtime start dist/server.js",
     "dev": "nodemon src/server.ts",
     "migrate:make": "knex migrate:make --knexfile src/knexfile.ts",
     "migrate:latest": "knex migrate:latest --knexfile src/knexfile.ts",
@@ -31,6 +31,7 @@
     "pino": "^8.15.1",
     "pino-http": "^8.5.0",
     "pino-pretty": "^10.2.0",
+    "pm2": "^5.3.0",
     "stream": "^0.0.2",
     "uuid": "^9.0.1",
     "xss": "^1.0.14"
