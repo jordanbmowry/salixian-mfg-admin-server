@@ -120,7 +120,7 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
       phoneNumber,
       firstName,
       lastName,
-      sortBy,
+      orderBy,
       order,
     } = req.query;
 
@@ -133,7 +133,7 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
       phoneNumber: (phoneNumber as string) || undefined,
       firstName: (firstName as string) || undefined,
       lastName: (lastName as string) || undefined,
-      sortBy: (sortBy as string) || undefined,
+      orderBy: (orderBy as string) || undefined,
       order: (order as 'asc' | 'desc') || undefined,
     };
 

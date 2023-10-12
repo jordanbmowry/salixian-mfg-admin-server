@@ -73,7 +73,7 @@ async function fetchOrdersWithCustomers(
       firstName,
       lastName,
       email,
-      sortBy,
+      orderBy,
       order,
       phoneNumber,
     } = req.query;
@@ -87,7 +87,7 @@ async function fetchOrdersWithCustomers(
       email: (email as string) || undefined,
       firstName: (firstName as string) || undefined,
       lastName: (lastName as string) || undefined,
-      sortBy: (sortBy as string) || undefined,
+      orderBy: (orderBy as string) || undefined,
       order: (order as 'asc' | 'desc') || undefined,
     };
 

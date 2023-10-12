@@ -110,7 +110,7 @@ export async function list(
     );
   }
 
-  const orderBy = options.sortBy || 'customer_id';
+  const orderBy = options.orderBy || 'customer_id';
   const order = options.order || 'asc';
 
   return paginate<Customer>(query, {

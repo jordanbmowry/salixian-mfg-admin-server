@@ -75,7 +75,7 @@ export interface CustomerListOptions {
   endDate?: Date | string | undefined;
   email?: string;
   phoneNumber?: string;
-  sortBy?: string;
+  orderBy?: string;
   order?: 'desc' | 'asc';
   firstName?: string;
   lastName?: string;
@@ -104,7 +104,7 @@ export interface OrderListOptions {
   email?: string;
   firstName?: string;
   lastName?: string;
-  sortBy?: string;
+  orderBy?: string;
   phoneNumber?: string;
   order?: 'asc' | 'desc';
 }

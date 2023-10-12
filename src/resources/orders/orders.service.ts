@@ -90,7 +90,7 @@ export async function listOrdersWithCustomers(
     );
   }
 
-  const orderBy = options.sortBy || 'o.order_id';
+  const orderBy = options.orderBy || 'o.order_id';
   const order = options.order || 'asc';
 
   return paginate<OrderWithCustomer>(query, {
