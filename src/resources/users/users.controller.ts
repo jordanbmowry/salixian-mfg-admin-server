@@ -49,6 +49,29 @@ interface RequestWithUser extends Request {
   user?: Record<string, any>;
 }
 
+function ensureAuthorizedToUpdate(
+  req: RequestWithUser,
+  res: Response,
+  next: NextFunction
+): void {
+  logMethod(req, 'ensureAuthorizedToUpdate');
+
+  if (req.user?.role === 'admin') {
+    return next();
+  }
+
+  if (req.user?.id === res.locals.user.user_id) {
+    return next();
+  }
+
+  next(
+    new AppError(
+      HttpStatusCode.UNAUTHORIZED,
+      'Not authorized to update this user.'
+    )
+  );
+}
+
 async function userExists(
   req: RequestWithUser,
   res: Response,
@@ -278,7 +301,6 @@ export default {
   ],
   update: [
     authenticateJWT,
-    ensureAdmin,
     sanitizeRequestBody,
     sanitizeParams,
     bodyHasDataProperty,
@@ -289,6 +311,7 @@ export default {
       primaryKey: 'user_id',
       paramKey: 'userId',
     }),
+    ensureAuthorizedToUpdate,
     asyncErrorBoundary(updateUser),
   ],
   delete: [
@@ -298,7 +321,7 @@ export default {
     asyncErrorBoundary(userExists),
     asyncErrorBoundary(deleteUser),
   ],
-  list: [authenticateJWT, asyncErrorBoundary(listUsers)],
+  list: [authenticateJWT, ensureAdmin, asyncErrorBoundary(listUsers)],
   login: [
     jwtSecretExists,
     sanitizeRequestBody,
