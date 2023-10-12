@@ -178,6 +178,13 @@ async function updateUser(req: RequestWithUser, res: Response): Promise<void> {
     throw new AppError(HttpStatusCode.BAD_REQUEST, validation.error.message);
   }
 
+  if (req.user?.role !== 'admin' && Object.hasOwn(req.body.data, 'role')) {
+    throw new AppError(
+      HttpStatusCode.FORBIDDEN,
+      "You're not allowed to update the user role."
+    );
+  }
+
   const updatedUser: UserForUpdate = {
     ...req.body.data,
     user_id: res.locals.user.user_id,

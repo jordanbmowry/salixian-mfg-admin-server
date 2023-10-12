@@ -25,14 +25,14 @@ export function checkDuplicate({
     logMethod(req, 'checkDuplicate');
 
     try {
-      const entityId = req.params[paramKey]; // Change this line
+      const entityId = req.params[paramKey];
 
       const queries = fields.map((field) => {
         const value = req.body.data[field];
 
         let query = knex(table).where({ [field]: value });
 
-        // Add the condition only if entityId is defined
+        // allow middleware to work with PUT requests
         if (entityId) {
           query = query.whereNot({ [primaryKey]: entityId });
         }
