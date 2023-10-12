@@ -49,7 +49,8 @@ export async function listOrdersWithCustomers(
       'c.created_at as customer_created_at',
       'c.updated_at as customer_updated_at',
     ])
-    .whereNull('c.deleted_at');
+    .whereNull('c.deleted_at')
+    .whereNull('o.deleted_at');
 
   if (options.startDate && options.endDate) {
     query = query.whereBetween('o.created_at', [
