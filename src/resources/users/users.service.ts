@@ -21,7 +21,19 @@ export async function read(whereObj?: WhereObj): Promise<User | undefined> {
   }
 
   try {
-    return await knex('users').select('*').where(whereObj).first();
+    return await knex('users')
+      .select(
+        'user_id',
+        'email',
+        'role',
+        'first_name',
+        'last_name',
+        'last_login',
+        'created_at',
+        'updated_at'
+      )
+      .where(whereObj)
+      .first();
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to read user: ${error.message}`);
@@ -57,7 +69,16 @@ export async function destroy(user_id: string): Promise<void> {
 
 export async function list(): Promise<User[]> {
   try {
-    return await knex('users').select('*');
+    return await knex('users').select(
+      'user_id',
+      'email',
+      'role',
+      'first_name',
+      'last_name',
+      'last_login',
+      'created_at',
+      'updated_at'
+    );
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to list users: ${error.message}`);
