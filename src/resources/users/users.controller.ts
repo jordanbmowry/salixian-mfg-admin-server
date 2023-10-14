@@ -213,6 +213,12 @@ async function listUsers(req: RequestWithUser, res: Response): Promise<void> {
 
 function readUser(req: RequestWithUser, res: Response) {
   logMethod(req, 'readUser');
+
+  if (res.locals.user) {
+    const { password, ...userWithoutPassword } = res.locals.user;
+    res.locals.user = userWithoutPassword;
+  }
+
   res.json({
     status: 'success',
     data: res.locals.user,
