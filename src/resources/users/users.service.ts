@@ -30,7 +30,8 @@ export async function read(whereObj?: WhereObj): Promise<User | undefined> {
         'last_name',
         'last_login',
         'created_at',
-        'updated_at'
+        'updated_at',
+        'password'
       )
       .where(whereObj)
       .first();
