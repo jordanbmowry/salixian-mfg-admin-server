@@ -3,12 +3,13 @@ import { Knex } from 'knex';
 export async function up(knex: Knex): Promise<void> {
   // Create the 'users' table
   await knex.schema.createTable('users', (table) => {
-    table.uuid('user_id').primary().defaultTo(knex.raw('uuid_generate_v4()')); // use UUID v4 as primary key
+    table.uuid('user_id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table.string('email').notNullable().unique();
     table.string('role').notNullable().defaultTo('user');
     table.string('first_name');
     table.string('last_name');
     table.string('password').notNullable();
+    table.text('notes');
     table.timestamp('last_login');
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
