@@ -17,6 +17,7 @@ export const userUpdateSchema = userSchema
     last_name: Joi.string().allow(null, '').optional(),
     password: Joi.string().optional(),
     user_id: Joi.string().allow(null, '').optional(),
+    notes: Joi.string().allow(null, '').optional(),
   })
   .unknown(false);
 
