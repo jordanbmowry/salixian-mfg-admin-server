@@ -195,7 +195,6 @@ async function handleGetCustomerWithOrders(
     order,
     generateCacheKey(req, res, 'orders-by-customer-id')
   );
-  console.log(data);
 
   res.json({
     status: 'success',

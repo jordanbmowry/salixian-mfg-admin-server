@@ -187,10 +187,6 @@ export async function fetchOrdersByCustomerId(
     orderBy,
     order,
   });
-  console.log(result, {
-    ...result,
-    pageSize,
-  });
 
   await setCache(redisKey, {
     ...result,

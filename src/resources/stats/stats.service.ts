@@ -1,4 +1,4 @@
-import db from '../../db/connection';
+import knex from '../../db/connection';
 
 export async function calculateRevenue(
   trx: any,
@@ -29,7 +29,7 @@ export async function countOrders(
   endDate?: Date
 ): Promise<number> {
   try {
-    let query = db('orders').count('order_id as result');
+    let query = trx('orders').count('order_id as result');
 
     if (startDate && endDate) {
       query.whereBetween('order_date', [startDate, endDate]);
@@ -174,7 +174,7 @@ type DashboardStats = {
 };
 
 export async function getAggregateStats(startDate?: Date, endDate?: Date) {
-  return db.transaction(async (trx) => {
+  return knex.transaction(async (trx: any) => {
     try {
       const revenue = await calculateRevenue(trx, startDate, endDate);
       const orderCount = await countOrders(trx, startDate, endDate);
