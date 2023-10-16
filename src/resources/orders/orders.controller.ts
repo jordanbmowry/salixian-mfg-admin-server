@@ -23,7 +23,7 @@ import {
 } from '../../utils/sanitizeMiddleware';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { orderSchema } from '../../errors/joiValidationSchemas';
-import { getUrl } from '../../utils/getUrl';
+import { generateCacheKey } from '../../utils/genterateCacheKey';
 
 const { DEFAULT_PAGE_PAGINATION = 1, DEFAULT_PAGE_SIZE = 10 } = process.env;
 
@@ -33,7 +33,10 @@ async function orderExists(
   next: NextFunction
 ): Promise<void> {
   logMethod(req, 'orderExists');
-  const order = await read(req.params.orderId, getUrl(req, res));
+  const order = await read(
+    req.params.orderId,
+    generateCacheKey(req, res, 'order-exists-check')
+  );
   if (order) {
     res.locals.order = order;
     return next();
@@ -48,7 +51,7 @@ async function orderExists(
 
 async function listOrders(req: Request, res: Response): Promise<void> {
   logMethod(req, 'listOrders');
-  const data = await list(getUrl(req, res));
+  const data = await list(generateCacheKey(req, res, 'list-orders'));
   res.json({ message: 'List orders', data, status: 'success' });
 }
 
@@ -94,7 +97,7 @@ async function fetchOrdersWithCustomers(
 
     const { data, totalCount } = await listOrdersWithCustomers(
       options,
-      getUrl(req, res)
+      generateCacheKey(req, res, 'list-orders-with-customers')
     );
 
     const meta = {

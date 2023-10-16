@@ -24,7 +24,7 @@ import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { customerSchema } from '../../errors/joiValidationSchemas';
 import type { Customer, CustomerListOptions } from '../../types/types';
 import { checkDuplicate } from '../../errors/checkDuplicates';
-import { getUrl } from '../../utils/getUrl';
+import { generateCacheKey } from '../../utils/genterateCacheKey';
 
 const { DEFAULT_PAGE_PAGINATION = 1, DEFAULT_PAGE_SIZE = 10 } = process.env;
 
@@ -88,7 +88,10 @@ export async function customerExists(
     return;
   }
 
-  const customer = await read(customerId, getUrl(req, res));
+  const customer = await read(
+    customerId,
+    generateCacheKey(req, res, 'customer-existence-check')
+  );
   if (customer) {
     res.locals.customer = customer;
     return next();
@@ -138,7 +141,10 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
       order: (order as 'asc' | 'desc') || undefined,
     };
 
-    const { data, totalCount } = await list(options, getUrl(req, res));
+    const { data, totalCount } = await list(
+      options,
+      generateCacheKey(req, res, 'list-customers')
+    );
 
     const meta = {
       currentPage: options.page,
@@ -187,8 +193,9 @@ async function handleGetCustomerWithOrders(
     pageSize,
     orderBy,
     order,
-    getUrl(req, res)
+    generateCacheKey(req, res, 'orders-by-customer-id')
   );
+  console.log(data);
 
   res.json({
     status: 'success',

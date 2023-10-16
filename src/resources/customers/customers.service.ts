@@ -177,6 +177,9 @@ export async function fetchOrdersByCustomerId(
   redisKey: string
 ): Promise<PaginationResult<Order>> {
   const cacheValue = await getCache(redisKey);
+  console.log(redisKey);
+  console.log('cacheValue', cacheValue);
+
   if (cacheValue) {
     return cacheValue;
   }
@@ -187,6 +190,10 @@ export async function fetchOrdersByCustomerId(
     pageSize,
     orderBy,
     order,
+  });
+  console.log(result, {
+    ...result,
+    pageSize,
   });
 
   await setCache(redisKey, {
