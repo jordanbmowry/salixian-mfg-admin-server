@@ -3,8 +3,6 @@ import express, { Response } from 'express';
 export function setTokenCookie(res: Response, token: string) {
   let cookieOptions: express.CookieOptions;
 
-  console.log(process.env.NODE_ENV);
-
   if (process.env.NODE_ENV === 'production') {
     // Production settings
     cookieOptions = {
