@@ -65,19 +65,26 @@ export async function getCache(key: string) {
   }
 }
 
-export async function clearCache(pattern: string) {
+export async function clearCache(pattern: string, verb: string | null = null) {
   try {
-    let cursor = 0;
-    do {
-      const response = await client.scan(cursor, {
-        MATCH: pattern,
-        COUNT: 1_000,
-      });
-      cursor = response.cursor;
-      const keys = response.keys;
+    let cursor: number | string = 0;
+    const fullPattern = verb ? `${verb}:${pattern}` : `*:${pattern}`;
+    const batchDeleteLimit = 100;
 
-      if (keys.length > 0) {
-        await client.del(keys);
+    do {
+      const result: { cursor: number; keys: string[] } = await client.scan(
+        cursor,
+        {
+          MATCH: fullPattern,
+          COUNT: batchDeleteLimit,
+        }
+      );
+
+      cursor = result.cursor;
+      const fetchedKeys = result.keys;
+
+      if (fetchedKeys.length > 0) {
+        await client.del([...fetchedKeys]);
       }
     } while (cursor !== 0);
   } catch (error) {
@@ -90,24 +97,6 @@ export async function clearCache(pattern: string) {
       throw new AppError(
         HttpStatusCode.INTERNAL_SERVER_ERROR,
         `Failed to clear cache`
-      );
-    }
-  }
-}
-
-export async function clearAllCache() {
-  try {
-    await client.flushAll();
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new AppError(
-        HttpStatusCode.INTERNAL_SERVER_ERROR,
-        `Failed to flush all cache: ${error.message}`
-      );
-    } else {
-      throw new AppError(
-        HttpStatusCode.INTERNAL_SERVER_ERROR,
-        `Failed to flush all cache`
       );
     }
   }
