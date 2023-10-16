@@ -1,4 +1,3 @@
-// createUsersTable.ts
 import { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
@@ -19,14 +18,12 @@ export async function up(knex: Knex): Promise<void> {
   // Ensure that the uuid-ossp module is enabled for the UUID generation functions
   await knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
 
-  // Add trigger to update 'updated_at' column when specific columns are updated
+  // Add trigger to update 'updated_at' column on each update
   await knex.raw(`
     CREATE OR REPLACE FUNCTION update_user_timestamp()
     RETURNS TRIGGER AS $$
     BEGIN
-      IF NEW.last_login = OLD.last_login THEN
-        NEW.updated_at = CURRENT_TIMESTAMP;
-      END IF;
+      NEW.updated_at = CURRENT_TIMESTAMP;
       RETURN NEW;
     END;
     $$ LANGUAGE plpgsql;
