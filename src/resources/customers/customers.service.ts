@@ -23,12 +23,27 @@ export async function create(customer: Customer) {
       throw new Error(`Failed to create customer: ${error.message}`);
     }
     throw new Error('Failed to create customer.');
+  } finally {
+    const cachePattern = `/customers*`;
+    await clearCache(cachePattern);
   }
 }
 
-export async function read(customer_id: string) {
+export async function read(customer_id: string, redisKey: string) {
   try {
-    return knex('customers').select('*').where({ customer_id }).first();
+    const cacheValue = await getCache(redisKey);
+    if (cacheValue) {
+      return cacheValue;
+    }
+
+    const result = await knex('customers')
+      .select('*')
+      .where({ customer_id })
+      .first();
+
+    await setCache(redisKey, result);
+
+    return result;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(
@@ -51,6 +66,9 @@ export async function softDelete(customer_id: string): Promise<void> {
       );
     }
     throw new Error(`Failed to soft delete customer ${customer_id}.`);
+  } finally {
+    const cachePattern = `/customers*`;
+    await clearCache(cachePattern);
   }
 }
 
@@ -65,6 +83,9 @@ export async function update(updatedCustomer: Partial<Customer>) {
       throw new Error(`Failed to update customer: ${error.message}`);
     }
     throw new Error('Failed to update customer.');
+  } finally {
+    const cachePattern = `/customers/${updatedCustomer.customer_id}*`;
+    await clearCache(cachePattern);
   }
 }
 
@@ -141,6 +162,9 @@ export async function destroy(customer_id: string) {
       );
     }
     throw new Error(`Failed to delete customer ${customer_id}.`);
+  } finally {
+    const cachePattern = `/customers*`;
+    await clearCache(cachePattern);
   }
 }
 

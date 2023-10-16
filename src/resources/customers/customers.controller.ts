@@ -88,7 +88,7 @@ export async function customerExists(
     return;
   }
 
-  const customer = await read(customerId);
+  const customer = await read(customerId, getUrl(req, res));
   if (customer) {
     res.locals.customer = customer;
     return next();
