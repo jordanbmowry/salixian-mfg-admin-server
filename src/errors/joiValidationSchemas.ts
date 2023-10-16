@@ -7,6 +7,7 @@ export const userSchema = Joi.object({
   last_name: Joi.string().allow(null, ''),
   password: Joi.string().required(),
   user_id: Joi.string().allow(null, ''),
+  notes: Joi.string().allow(null, '').optional(),
 }).unknown(false);
 
 export const userUpdateSchema = userSchema
