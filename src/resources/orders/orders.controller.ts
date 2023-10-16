@@ -23,6 +23,7 @@ import {
 } from '../../utils/sanitizeMiddleware';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { orderSchema } from '../../errors/joiValidationSchemas';
+import { getUrl } from '../../utils/getUrl';
 
 const { DEFAULT_PAGE_PAGINATION = 1, DEFAULT_PAGE_SIZE = 10 } = process.env;
 
@@ -32,7 +33,7 @@ async function orderExists(
   next: NextFunction
 ): Promise<void> {
   logMethod(req, 'orderExists');
-  const order = await read(req.params.orderId);
+  const order = await read(req.params.orderId, getUrl(req, res));
   if (order) {
     res.locals.order = order;
     return next();
@@ -47,7 +48,7 @@ async function orderExists(
 
 async function listOrders(req: Request, res: Response): Promise<void> {
   logMethod(req, 'listOrders');
-  const data = await list();
+  const data = await list(getUrl(req, res));
   res.json({ message: 'List orders', data, status: 'success' });
 }
 
@@ -91,7 +92,10 @@ async function fetchOrdersWithCustomers(
       order: (order as 'asc' | 'desc') || undefined,
     };
 
-    const { data, totalCount } = await listOrdersWithCustomers(options);
+    const { data, totalCount } = await listOrdersWithCustomers(
+      options,
+      getUrl(req, res)
+    );
 
     const meta = {
       currentPage: options.page,

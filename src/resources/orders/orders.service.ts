@@ -6,10 +6,20 @@ import type {
   PaginationResult,
 } from '../../types/types';
 import { paginate } from '../../utils/paginate';
+import { getCache, setCache, clearCache } from '../../db/redis/redisCache';
+import { Knex } from 'knex';
 
-export async function list(): Promise<Order[]> {
+export async function list(redisKey: string): Promise<Order[]> {
   try {
-    return await knex('orders').select('*');
+    const cacheValue = await getCache(redisKey);
+    if (cacheValue) {
+      return cacheValue;
+    }
+    const result = await knex('orders').select('*');
+
+    await setCache(redisKey, result);
+
+    return result;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to list orders: ${error.message}`);
@@ -18,9 +28,17 @@ export async function list(): Promise<Order[]> {
   }
 }
 
-export async function read(order_id: string): Promise<Order> {
+export async function read(order_id: string, redisKey: string): Promise<Order> {
   try {
-    return knex('orders').select('*').where({ order_id }).first();
+    const cacheValue = await getCache(redisKey);
+    if (cacheValue) {
+      return cacheValue;
+    }
+    const result = await knex('orders').select('*').where({ order_id }).first();
+
+    await setCache(redisKey, result);
+
+    return result;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to read order ${order_id}: ${error.message}`);
@@ -29,9 +47,27 @@ export async function read(order_id: string): Promise<Order> {
   }
 }
 
+function applyTextFilter(
+  query: Knex.QueryBuilder,
+  column: string,
+  value: string
+): Knex.QueryBuilder {
+  return query.where(
+    knex.raw('LOWER(??)', [column]),
+    'LIKE',
+    `${value.toLowerCase()}%`
+  );
+}
+
 export async function listOrdersWithCustomers(
-  options: OrderListOptions = {}
+  options: OrderListOptions = {},
+  redisKey: string
 ): Promise<PaginationResult<OrderWithCustomer>> {
+  const cacheValue = await getCache(redisKey);
+  if (cacheValue) {
+    return cacheValue;
+  }
+
   let query = knex('orders as o')
     .join('customers as c', 'o.customer_id', 'c.customer_id')
     .select([
@@ -60,46 +96,34 @@ export async function listOrdersWithCustomers(
   }
 
   if (options.phoneNumber) {
-    query = query.where(
-      knex.raw('LOWER(c.phone_number)'),
-      'LIKE',
-      `${options.phoneNumber.toLowerCase()}%`
-    );
+    query = applyTextFilter(query, 'c.phone_number', options.phoneNumber);
   }
 
   if (options.email) {
-    query = query.where(
-      knex.raw('LOWER(c.email)'),
-      'LIKE',
-      `${options.email.toLowerCase()}%`
-    );
+    query = applyTextFilter(query, 'c.email', options.email);
   }
 
   if (options.firstName) {
-    query = query.where(
-      knex.raw('LOWER(c.first_name)'),
-      'LIKE',
-      `${options.firstName.toLowerCase()}%`
-    );
+    query = applyTextFilter(query, 'c.first_name', options.firstName);
   }
 
   if (options.lastName) {
-    query = query.where(
-      knex.raw('LOWER(c.last_name)'),
-      'LIKE',
-      `${options.lastName.toLowerCase()}%`
-    );
+    query = applyTextFilter(query, 'c.last_name', options.lastName);
   }
 
   const orderBy = options.orderBy || 'o.order_id';
   const order = options.order || 'asc';
 
-  return paginate<OrderWithCustomer>(query, {
+  const result = await paginate<OrderWithCustomer>(query, {
     page: options.page ?? 1,
     pageSize: options.pageSize ?? 10,
     orderBy,
     order,
   });
+
+  await setCache(redisKey, result);
+
+  return result;
 }
 
 export async function create(order: Partial<Order>) {
@@ -113,6 +137,8 @@ export async function create(order: Partial<Order>) {
       throw new Error(`Failed to create order: ${error.message}`);
     }
     throw new Error('Failed to create order.');
+  } finally {
+    await clearCache('/orders*');
   }
 }
 
@@ -127,6 +153,8 @@ export async function update(updatedOrder: Partial<Order>) {
       );
     }
     throw new Error(`Failed to update order ${updatedOrder.order_id}.`);
+  } finally {
+    await clearCache('/orders*');
   }
 }
 
@@ -142,6 +170,8 @@ export async function softDelete(order_id: string): Promise<void> {
       );
     }
     throw new Error(`Failed to soft delete order ${order_id}.`);
+  } finally {
+    await clearCache('/orders*');
   }
 }
 
@@ -153,5 +183,7 @@ export async function destroy(order_id: string) {
       throw new Error(`Failed to delete order ${order_id}: ${error.message}`);
     }
     throw new Error(`Failed to delete order ${order_id}.`);
+  } finally {
+    await clearCache('/orders*');
   }
 }

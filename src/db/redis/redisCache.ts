@@ -2,7 +2,8 @@ import { createClient } from 'redis';
 import { AppError } from '../../errors/AppError';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 
-const { NODE_ENV = 'development', REDIS_URL } = process.env;
+const { NODE_ENV = 'development', REDIS_URL = 'redis://127.0.0.1:6379' } =
+  process.env;
 const url = NODE_ENV === 'development' ? 'redis://127.0.0.1:6379' : REDIS_URL;
 
 const client = createClient({
@@ -89,6 +90,24 @@ export async function clearCache(pattern: string) {
       throw new AppError(
         HttpStatusCode.INTERNAL_SERVER_ERROR,
         `Failed to clear cache`
+      );
+    }
+  }
+}
+
+export async function clearAllCache() {
+  try {
+    await client.flushAll();
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new AppError(
+        HttpStatusCode.INTERNAL_SERVER_ERROR,
+        `Failed to flush all cache: ${error.message}`
+      );
+    } else {
+      throw new AppError(
+        HttpStatusCode.INTERNAL_SERVER_ERROR,
+        `Failed to flush all cache`
       );
     }
   }

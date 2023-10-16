@@ -1,4 +1,5 @@
 import knex from '../../db/connection';
+import { getCache, setCache, clearCache } from '../../db/redis/redisCache';
 import type { User } from '../../types/types';
 
 export async function create(user: User): Promise<User> {
@@ -10,18 +11,28 @@ export async function create(user: User): Promise<User> {
       throw new Error(`Failed to create user: ${error.message}`);
     }
     throw new Error('Failed to create user.');
+  } finally {
+    clearCache('/users*');
   }
 }
 
 export type WhereObj = { user_id: string } | { email: string };
 
-export async function read(whereObj?: WhereObj): Promise<User | undefined> {
+export async function read(
+  redisKey: string,
+  whereObj?: WhereObj
+): Promise<User | undefined> {
   if (!whereObj) {
     throw new Error('Invalid where object provided.');
   }
 
   try {
-    return await knex('users')
+    const cacheValue = await getCache(redisKey);
+    if (cacheValue) {
+      return cacheValue;
+    }
+
+    const result = await knex('users')
       .select(
         'user_id',
         'email',
@@ -36,6 +47,10 @@ export async function read(whereObj?: WhereObj): Promise<User | undefined> {
       )
       .where(whereObj)
       .first();
+
+    await setCache(redisKey, result);
+
+    return result;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to read user: ${error.message}`);
@@ -55,6 +70,8 @@ export async function update(updatedUser: User): Promise<User> {
       throw new Error(`Failed to update user: ${error.message}`);
     }
     throw new Error('Failed to update user.');
+  } finally {
+    clearCache('/users*');
   }
 }
 
@@ -66,12 +83,19 @@ export async function destroy(user_id: string): Promise<void> {
       throw new Error(`Failed to delete user: ${error.message}`);
     }
     throw new Error('Failed to delete user.');
+  } finally {
+    clearCache('/users*');
   }
 }
 
-export async function list(): Promise<User[]> {
+export async function list(redisKey: string): Promise<User[]> {
   try {
-    return await knex('users').select(
+    const cacheValue = await getCache(redisKey);
+    if (cacheValue) {
+      return cacheValue;
+    }
+
+    const result = await knex('users').select(
       'user_id',
       'email',
       'role',
@@ -81,6 +105,9 @@ export async function list(): Promise<User[]> {
       'created_at',
       'updated_at'
     );
+
+    await setCache(redisKey, result);
+    return result;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to list users: ${error.message}`);
@@ -99,5 +126,7 @@ export async function updateLastLogin(user_id: string): Promise<void> {
       throw new Error(`Failed to update last login for user: ${error.message}`);
     }
     throw new Error('Failed to update last login for user.');
+  } finally {
+    clearCache(`/users/${user_id}*`);
   }
 }

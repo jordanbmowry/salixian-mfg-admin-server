@@ -31,6 +31,7 @@ import { Worker } from 'worker_threads';
 import argon2 from 'argon2';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { checkDuplicate } from '../../errors/checkDuplicates';
+import { getUrl } from '../../utils/getUrl';
 
 const { NODE_ENV = 'development', RAILWAY_PROJECT_ROOT } = process.env;
 
@@ -108,7 +109,7 @@ async function checkAndSetUser(
   res: Response
 ): Promise<void> {
   logMethod(req, 'checkAndSetUser');
-  const user = await read(whereObj);
+  const user = await read(getUrl(req, res), whereObj);
   if (user) {
     res.locals.user = user;
     next();
@@ -207,7 +208,7 @@ async function deleteUser(req: RequestWithUser, res: Response): Promise<void> {
 
 async function listUsers(req: RequestWithUser, res: Response): Promise<void> {
   logMethod(req, 'listUsers');
-  const data = await list();
+  const data = await list(getUrl(req, res));
   res.json({ message: 'List users', data, status: 'success' });
 }
 
