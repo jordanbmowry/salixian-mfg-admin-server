@@ -1,4 +1,5 @@
 import knex from '../../db/connection';
+import { Knex } from 'knex';
 import type {
   Order,
   Customer,
@@ -6,6 +7,7 @@ import type {
   PaginationResult,
 } from '../../types/types';
 import { paginate } from '../../utils/paginate';
+import { getCache, setCache, clearCache } from '../../db/redis/redisCache';
 
 const DEFAULT_PAGE_PAGINATION = Number(process.env.DEFAULT_PAGE ?? 1);
 const DEFAULT_PAGE_SIZE = Number(process.env.DEFAULT_PAGE_SIZE ?? 10);
@@ -66,59 +68,67 @@ export async function update(updatedCustomer: Partial<Customer>) {
   }
 }
 
+function applyTextFilter(
+  query: Knex.QueryBuilder,
+  column: string,
+  value: string
+): Knex.QueryBuilder {
+  return query.where(
+    knex.raw('LOWER(??)', [column]),
+    'LIKE',
+    `${value.toLowerCase()}%`
+  );
+}
+
 export async function list(
-  options: CustomerListOptions = {}
+  options: CustomerListOptions = {},
+  redisKey: string
 ): Promise<PaginationResult<Customer>> {
+  const {
+    startDate,
+    endDate,
+    email,
+    phoneNumber,
+    firstName,
+    lastName,
+    page = DEFAULT_PAGE_PAGINATION,
+    pageSize = DEFAULT_PAGE_SIZE,
+    orderBy = 'customer_id',
+    order = 'asc',
+  } = options;
+
+  const cacheValue = await getCache(redisKey);
+  if (cacheValue) {
+    return cacheValue;
+  }
+
   let query = knex('customers').whereNull('deleted_at');
 
-  if (options.startDate instanceof Date && options.endDate instanceof Date) {
+  if (startDate instanceof Date && endDate instanceof Date) {
     query = query.whereBetween('created_at', [
-      options.startDate.toISOString(),
-      options.endDate.toISOString(),
+      startDate.toISOString(),
+      endDate.toISOString(),
     ]);
   }
 
-  if (options.email) {
-    query = query.where(
-      knex.raw('LOWER(email)'),
-      'LIKE',
-      `${options.email.toLowerCase()}%`
-    );
-  }
+  if (email) applyTextFilter(query, 'email', email);
+  if (phoneNumber) applyTextFilter(query, 'phone_number', phoneNumber);
+  if (firstName) applyTextFilter(query, 'first_name', firstName);
+  if (lastName) applyTextFilter(query, 'last_name', lastName);
 
-  if (options.phoneNumber) {
-    query = query.where(
-      knex.raw('LOWER(phone_number)'),
-      'LIKE',
-      `${options.phoneNumber.toLowerCase()}%`
-    );
-  }
-
-  if (options.firstName) {
-    query = query.where(
-      knex.raw('LOWER(first_name)'),
-      'LIKE',
-      `${options.firstName.toLowerCase()}%`
-    );
-  }
-
-  if (options.lastName) {
-    query = query.where(
-      knex.raw('LOWER(last_name)'),
-      'LIKE',
-      `${options.lastName.toLowerCase()}%`
-    );
-  }
-
-  const orderBy = options.orderBy || 'customer_id';
-  const order = options.order || 'asc';
-
-  return paginate<Customer>(query, {
-    page: options.page ?? DEFAULT_PAGE_PAGINATION,
-    pageSize: options.pageSize ?? DEFAULT_PAGE_SIZE,
+  const result = await paginate<Customer>(query, {
+    page,
+    pageSize,
     orderBy,
     order,
   });
+
+  await setCache(redisKey, {
+    ...result,
+    pageSize,
+  });
+
+  return { ...result, pageSize };
 }
 
 export async function destroy(customer_id: string) {
@@ -139,13 +149,26 @@ export async function fetchOrdersByCustomerId(
   page: number = DEFAULT_PAGE_PAGINATION,
   pageSize: number = DEFAULT_PAGE_SIZE,
   orderBy: string = 'order_id',
-  order: 'asc' | 'desc' = 'asc'
+  order: 'asc' | 'desc' = 'asc',
+  redisKey: string
 ): Promise<PaginationResult<Order>> {
+  const cacheValue = await getCache(redisKey);
+  if (cacheValue) {
+    return cacheValue;
+  }
+
   const query = knex('orders').where({ customer_id });
-  return paginate<Order>(query, {
+  const result = await paginate<Order>(query, {
     page,
     pageSize,
     orderBy,
     order,
   });
+
+  await setCache(redisKey, {
+    ...result,
+    pageSize,
+  });
+
+  return { ...result, pageSize };
 }

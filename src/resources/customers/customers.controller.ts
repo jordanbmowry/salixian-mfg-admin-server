@@ -24,6 +24,7 @@ import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { customerSchema } from '../../errors/joiValidationSchemas';
 import type { Customer, CustomerListOptions } from '../../types/types';
 import { checkDuplicate } from '../../errors/checkDuplicates';
+import { getUrl } from '../../utils/getUrl';
 
 const { DEFAULT_PAGE_PAGINATION = 1, DEFAULT_PAGE_SIZE = 10 } = process.env;
 
@@ -137,7 +138,7 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
       order: (order as 'asc' | 'desc') || undefined,
     };
 
-    const { data, totalCount } = await list(options);
+    const { data, totalCount } = await list(options, getUrl(req, res));
 
     const meta = {
       currentPage: options.page,
@@ -185,7 +186,8 @@ async function handleGetCustomerWithOrders(
     page,
     pageSize,
     orderBy,
-    order
+    order,
+    getUrl(req, res)
   );
 
   res.json({
