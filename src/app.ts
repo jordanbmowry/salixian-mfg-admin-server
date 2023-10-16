@@ -7,6 +7,7 @@ import ordersRouter from './resources/orders/orders.router';
 import statsRouter from './resources/stats/stats.router';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
+import timeout from 'connect-timeout';
 import rateLimit from 'express-rate-limit';
 import logger from './config/logger';
 import { AppError } from './errors/AppError';
@@ -41,6 +42,7 @@ app.use(
   })
 );
 app.use(helmet());
+app.use(timeout('15s'));
 app.use(express.json());
 app.use(pinoHttp({ logger }));
 app.use(cookieParser());
