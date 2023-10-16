@@ -1,4 +1,6 @@
 import { createClient } from 'redis';
+import { AppError } from '../../errors/AppError';
+import { HttpStatusCode } from '../../errors/httpStatusCode';
 
 const client = createClient({
   url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
@@ -26,9 +28,15 @@ export async function setCache(key: string, value: any, expiration = 604_800) {
     await client.setEx(key, expiration, JSON.stringify(value));
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Failed to set cache: ${error.message}`);
+      throw new AppError(
+        HttpStatusCode.INTERNAL_SERVER_ERROR,
+        `Failed to set cache: ${error.message}`
+      );
     } else {
-      throw new Error(`Failed to set cache`);
+      throw new AppError(
+        HttpStatusCode.INTERNAL_SERVER_ERROR,
+        `Failed to set cache`
+      );
     }
   }
 }
@@ -40,22 +48,45 @@ export async function getCache(key: string) {
     return JSON.parse(result);
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Failed to get cache: ${error.message}`);
+      throw new AppError(
+        HttpStatusCode.INTERNAL_SERVER_ERROR,
+        `Failed to get cache: ${error.message}`
+      );
     } else {
-      throw new Error(`Failed to get cache`);
+      throw new AppError(
+        HttpStatusCode.INTERNAL_SERVER_ERROR,
+        `Failed to get cache`
+      );
     }
   }
 }
 
-export async function clearCache(key: string) {
+export async function clearCache(pattern: string) {
   try {
-    const result = await client.del(key);
-    return result;
+    let cursor = 0;
+    do {
+      const response = await client.scan(cursor, {
+        MATCH: pattern,
+        COUNT: 1_000,
+      });
+      cursor = response.cursor;
+      const keys = response.keys;
+
+      if (keys.length > 0) {
+        await client.del(keys);
+      }
+    } while (cursor !== 0);
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Failed to clear cache: ${error.message}`);
+      throw new AppError(
+        HttpStatusCode.INTERNAL_SERVER_ERROR,
+        `Failed to clear cache: ${error.message}`
+      );
     } else {
-      throw new Error(`Failed to clear cache`);
+      throw new AppError(
+        HttpStatusCode.INTERNAL_SERVER_ERROR,
+        `Failed to clear cache`
+      );
     }
   }
 }
