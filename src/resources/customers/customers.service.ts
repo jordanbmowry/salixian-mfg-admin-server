@@ -24,8 +24,7 @@ export async function create(customer: Customer) {
     }
     throw new Error('Failed to create customer.');
   } finally {
-    const cachePattern = `/customers*`;
-    await clearCache(cachePattern);
+    await clearCache(`/customers*`);
   }
 }
 
@@ -67,8 +66,7 @@ export async function softDelete(customer_id: string): Promise<void> {
     }
     throw new Error(`Failed to soft delete customer ${customer_id}.`);
   } finally {
-    const cachePattern = `/customers*`;
-    await clearCache(cachePattern);
+    await clearCache(`/customers*`);
   }
 }
 
@@ -84,8 +82,7 @@ export async function update(updatedCustomer: Partial<Customer>) {
     }
     throw new Error('Failed to update customer.');
   } finally {
-    const cachePattern = `/customers/${updatedCustomer.customer_id}*`;
-    await clearCache(cachePattern);
+    await clearCache(`/customers*`);
   }
 }
 
@@ -163,8 +160,7 @@ export async function destroy(customer_id: string) {
     }
     throw new Error(`Failed to delete customer ${customer_id}.`);
   } finally {
-    const cachePattern = `/customers*`;
-    await clearCache(cachePattern);
+    await clearCache(`/customers*`);
   }
 }
 
