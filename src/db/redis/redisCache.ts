@@ -2,8 +2,11 @@ import { createClient } from 'redis';
 import { AppError } from '../../errors/AppError';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 
+const { NODE_ENV = 'development', REDIS_URL } = process.env;
+const url = NODE_ENV === 'development' ? 'redis://127.0.0.1:6379' : REDIS_URL;
+
 const client = createClient({
-  url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
+  url,
 });
 
 client.on('connect', () => {
