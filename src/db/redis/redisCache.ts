@@ -1,0 +1,61 @@
+import { createClient } from 'redis';
+
+const client = createClient({
+  url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
+});
+
+client.on('connect', () => {
+  console.log('Redis client connected');
+});
+client.on('ready', () => {
+  console.log('Redis client ready');
+});
+client.on('error', (err) => {
+  console.error('Redis error:', err);
+});
+client.on('end', () => {
+  console.warn('Redis client connection closed');
+});
+client.connect().catch((err) => {
+  console.error('Failed to connect to Redis:', err);
+});
+
+// expire in a week
+export async function setCache(key: string, value: any, expiration = 604_800) {
+  try {
+    await client.setEx(key, expiration, JSON.stringify(value));
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to set cache: ${error.message}`);
+    } else {
+      throw new Error(`Failed to set cache`);
+    }
+  }
+}
+
+export async function getCache(key: string) {
+  try {
+    const result = await client.get(key);
+    // @ts-ignore
+    return JSON.parse(result);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to get cache: ${error.message}`);
+    } else {
+      throw new Error(`Failed to get cache`);
+    }
+  }
+}
+
+export async function clearCache(key: string) {
+  try {
+    const result = await client.del(key);
+    return result;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to clear cache: ${error.message}`);
+    } else {
+      throw new Error(`Failed to clear cache`);
+    }
+  }
+}
