@@ -1,10 +1,10 @@
 export class AppError extends Error {
   public readonly status: number;
-  public readonly message: string;
+  public readonly details?: any;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, details?: any) {
     super(message);
     this.status = status;
-    this.message = message;
+    this.details = details;
   }
 }
