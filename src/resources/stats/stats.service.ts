@@ -1,5 +1,21 @@
 import knex from '../../db/connection';
 
+function applyDateFilter(
+  query: any,
+  column: string,
+  startDate?: Date,
+  endDate?: Date
+) {
+  if (startDate && endDate) {
+    return query.whereBetween(column, [startDate, endDate]);
+  } else if (!startDate && !endDate) {
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    return query.whereBetween(column, [startOfYear, now]);
+  }
+  return query;
+}
+
 export async function calculateRevenue(
   trx: any,
   startDate?: Date,
@@ -7,14 +23,7 @@ export async function calculateRevenue(
 ): Promise<number> {
   try {
     let query = trx('orders').sum('customer_cost as result');
-
-    if (startDate && endDate) {
-      query.whereBetween('order_date', [startDate, endDate]);
-    } else if (!startDate && !endDate) {
-      const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      query.whereBetween('order_date', [startOfYear, now]);
-    }
+    query = applyDateFilter(query, 'order_date', startDate, endDate);
 
     const result = await query;
     return Number(result[0]?.result) || 0;
@@ -30,14 +39,7 @@ export async function countOrders(
 ): Promise<number> {
   try {
     let query = trx('orders').count('order_id as result');
-
-    if (startDate && endDate) {
-      query.whereBetween('order_date', [startDate, endDate]);
-    } else if (!startDate && !endDate) {
-      const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      query.whereBetween('order_date', [startOfYear, now]);
-    }
+    query = applyDateFilter(query, 'order_date', startDate, endDate);
 
     const result = await query;
     return Number(result[0]?.result) || 0;
@@ -53,14 +55,7 @@ export async function countCustomers(
 ): Promise<number> {
   try {
     let query = trx('customers').count('customer_id as result');
-
-    if (startDate && endDate) {
-      query.whereBetween('created_at', [startDate, endDate]);
-    } else if (!startDate && !endDate) {
-      const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      query.whereBetween('created_at', [startOfYear, now]);
-    }
+    query = applyDateFilter(query, 'created_at', startDate, endDate);
 
     const result = await query;
     return Number(result[0]?.result) || 0;
@@ -92,17 +87,9 @@ export async function getMonthlyRevenue(
       .groupBy('year', 'month')
       .orderBy('year', 'asc')
       .orderBy('month', 'asc');
-
-    if (startDate && endDate) {
-      query.whereBetween('order_date', [startDate, endDate]);
-    } else if (!startDate && !endDate) {
-      const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      query.whereBetween('order_date', [startOfYear, now]);
-    }
+    query = applyDateFilter(query, 'order_date', startDate, endDate);
 
     const results: any = await query;
-
     return {
       months: results.map(
         (r: any) => `${String(r.month ?? 0).padStart(2, '0')}-${r.year ?? 0}`
@@ -133,14 +120,7 @@ export async function getOrderStatusDistribution(
       .orderBy('year', 'asc')
       .orderBy('month', 'asc')
       .orderBy('order_status', 'asc');
-
-    if (startDate && endDate) {
-      query.whereBetween('order_date', [startDate, endDate]);
-    } else if (!startDate && !endDate) {
-      const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      query.whereBetween('order_date', [startOfYear, now]);
-    }
+    query = applyDateFilter(query, 'order_date', startDate, endDate);
 
     const results: Array<{
       month: number | undefined;
@@ -148,7 +128,6 @@ export async function getOrderStatusDistribution(
       order_status: string;
       count: number;
     }> = await query;
-
     return {
       date: results.map((r) => `${String(r.month).padStart(2, '0')}-${r.year}`),
       statuses: results.map((r) => r.order_status as string),

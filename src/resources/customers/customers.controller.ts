@@ -2,9 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import {
   list,
   read,
-  softDelete,
+  markAsDeleted,
   update,
-  destroy,
+  hardDelete,
   create,
   fetchOrdersByCustomerId,
 } from './customers.service';
@@ -24,7 +24,7 @@ import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { customerSchema } from '../../errors/joiValidationSchemas';
 import type { Customer, CustomerListOptions } from '../../types/types';
 import { checkDuplicate } from '../../errors/checkDuplicates';
-import { generateCacheKey } from '../../utils/genterateCacheKey';
+import { generateCacheKey } from '../../utils/generateCacheKey';
 
 const { DEFAULT_PAGE_PAGINATION = 1, DEFAULT_PAGE_SIZE = 10 } = process.env;
 
@@ -50,10 +50,11 @@ async function handleSoftDelete(
 ): Promise<void> {
   logMethod(req, 'handleSoftDelete');
   const { customerId } = req.params;
-  await softDelete(customerId);
-  res
-    .status(200)
-    .json({ message: `Customer ${customerId} soft deleted successfully.` });
+  await markAsDeleted(customerId);
+  res.json({
+    status: 'success',
+    message: `Customer ${customerId} soft deleted successfully.`,
+  });
 }
 
 async function handleUpdate(
@@ -63,14 +64,17 @@ async function handleUpdate(
 ): Promise<void> {
   logMethod(req, 'handleUpdate');
   const updateData: Partial<Customer> = req.body?.data ?? {};
-
   const updatedCustomer = {
     ...updateData,
     customer_id: res.locals.customer.customer_id,
   };
 
   const data = await update(updatedCustomer);
-  res.json({ status: 'success', data, message: 'Updated customer' });
+  res.json({
+    status: 'success',
+    data,
+    message: 'Updated customer',
+  });
 }
 
 export async function customerExists(
@@ -92,6 +96,7 @@ export async function customerExists(
     customerId,
     generateCacheKey(req, res, 'customer-existence-check')
   );
+
   if (customer) {
     res.locals.customer = customer;
     return next();
@@ -113,8 +118,13 @@ function readCustomer(req: Request, res: Response) {
   });
 }
 
-async function listCustomers(req: Request, res: Response): Promise<void> {
+async function listCustomers(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   try {
+    logMethod(req, 'listCustomers');
     const {
       page = DEFAULT_PAGE_PAGINATION,
       pageSize = DEFAULT_PAGE_SIZE,
@@ -125,8 +135,9 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
       firstName,
       lastName,
       orderBy,
-      order,
     } = req.query;
+
+    const order = (req.query.order as 'asc' | 'desc') || 'asc';
 
     const options: CustomerListOptions = {
       page: Number(page),
@@ -138,7 +149,7 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
       firstName: (firstName as string) || undefined,
       lastName: (lastName as string) || undefined,
       orderBy: (orderBy as string) || undefined,
-      order: (order as 'asc' | 'desc') || undefined,
+      order,
     };
 
     const { data, totalCount } = await list(
@@ -160,19 +171,19 @@ async function listCustomers(req: Request, res: Response): Promise<void> {
       status: 'success',
     });
   } catch (error) {
-    res.status(500).json({
-      message:
-        error instanceof Error ? error.message : 'An unknown error occurred',
-      status: 'error',
-    });
+    const errorMessage =
+      error instanceof Error ? error.message : 'An unknown error occurred';
+    next(new AppError(HttpStatusCode.INTERNAL_SERVER_ERROR, errorMessage));
   }
 }
 
 async function handleHardDelete(req: Request, res: Response): Promise<void> {
   const { customer } = res.locals;
-  logMethod(req, 'handleHardDelete');
-  await destroy(customer.customer_id);
-  res.sendStatus(HttpStatusCode.NO_CONTENT);
+  await hardDelete(customer.customer_id);
+  res.json({
+    status: 'success',
+    message: `Customer ${customer.customer_id} hard deleted successfully.`,
+  });
 }
 
 async function handleGetCustomerWithOrders(
@@ -180,8 +191,6 @@ async function handleGetCustomerWithOrders(
   res: Response
 ): Promise<void> {
   const { customer } = res.locals;
-  logMethod(req, 'handleGetCustomerWithOrders');
-
   const page = Number(req.query.page || DEFAULT_PAGE_PAGINATION);
   const pageSize = Number(req.query.pageSize || DEFAULT_PAGE_SIZE);
   const orderBy = (req.query.orderBy as string) || 'order_id';

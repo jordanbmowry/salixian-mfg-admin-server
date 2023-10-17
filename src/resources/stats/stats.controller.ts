@@ -5,6 +5,12 @@ import { sanitizeQuery } from '../../utils/sanitizeMiddleware';
 import { getAggregateStats } from './stats.service';
 import { logMethod } from '../../config/logMethod';
 
+/**
+ * Checks if a given value is a string that represents a valid date.
+ *
+ * @param value - The value to check.
+ * @returns A boolean indicating if the value is a date string.
+ */
 function isDateString(value: any): value is string {
   if (typeof value !== 'string') {
     return false;

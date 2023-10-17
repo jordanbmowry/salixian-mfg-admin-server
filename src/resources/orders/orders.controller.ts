@@ -5,8 +5,8 @@ import {
   create,
   listOrdersWithCustomers,
   update,
-  softDelete,
-  destroy,
+  markAsDeleted,
+  hardDelete,
 } from './orders.service';
 import { customerExists } from '../customers/customers.controller';
 import asyncErrorBoundary from '../../errors/asyncErrorBoundary';
@@ -23,7 +23,7 @@ import {
 } from '../../utils/sanitizeMiddleware';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { orderSchema } from '../../errors/joiValidationSchemas';
-import { generateCacheKey } from '../../utils/genterateCacheKey';
+import { generateCacheKey } from '../../utils/generateCacheKey';
 
 const { DEFAULT_PAGE_PAGINATION = 1, DEFAULT_PAGE_SIZE = 10 } = process.env;
 
@@ -66,7 +66,8 @@ function readOrder(req: Request, res: Response) {
 
 async function fetchOrdersWithCustomers(
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ): Promise<void> {
   try {
     const {
@@ -114,11 +115,13 @@ async function fetchOrdersWithCustomers(
       status: 'success',
     });
   } catch (error) {
-    res.status(500).json({
-      message:
-        error instanceof Error ? error.message : 'An unknown error occurred',
-      status: 'error',
-    });
+    next(
+      new AppError(
+        HttpStatusCode.INTERNAL_SERVER_ERROR,
+        'An unknown error occurred',
+        error
+      )
+    );
   }
 }
 
@@ -167,7 +170,7 @@ async function handleSoftDelete(
 ): Promise<void> {
   logMethod(req, 'handleSoftDelete');
   const { orderId } = req.params;
-  await softDelete(orderId);
+  await markAsDeleted(orderId);
   res
     .status(HttpStatusCode.NO_CONTENT)
     .json({ message: `Order ${orderId} soft deleted successfully.` });
@@ -176,7 +179,7 @@ async function handleSoftDelete(
 async function handleHardDelete(req: Request, res: Response): Promise<void> {
   const { order } = res.locals;
   logMethod(req, 'handleHardDelete');
-  await destroy(order.order_id);
+  await hardDelete(order.order_id);
   res.sendStatus(HttpStatusCode.NO_CONTENT);
 }
 

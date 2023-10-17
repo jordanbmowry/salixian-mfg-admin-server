@@ -31,7 +31,7 @@ import { Worker } from 'worker_threads';
 import argon2 from 'argon2';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { checkDuplicate } from '../../errors/checkDuplicates';
-import { generateCacheKey } from '../../utils/genterateCacheKey';
+import { generateCacheKey } from '../../utils/generateCacheKey';
 
 const { NODE_ENV = 'development', RAILWAY_PROJECT_ROOT } = process.env;
 

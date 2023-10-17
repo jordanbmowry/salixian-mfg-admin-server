@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 
-// utils/generateCacheKey.ts
 export function generateCacheKey(
   req: Request,
   res: Response,
