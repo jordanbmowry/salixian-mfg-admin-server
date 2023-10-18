@@ -120,8 +120,11 @@ export async function list(redisKey: string): Promise<User[]> {
     if (cacheValue) {
       return cacheValue as User[];
     }
+    const columnsWithoutPassword = USER_COLUMNS.filter(
+      (column) => column !== 'password'
+    );
 
-    const result = await knex('users').select(...USER_COLUMNS);
+    const result = await knex('users').select(...columnsWithoutPassword);
 
     if (result && result.length > 0) {
       await setCache(redisKey, result);
