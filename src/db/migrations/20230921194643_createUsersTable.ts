@@ -20,13 +20,15 @@ export async function up(knex: Knex): Promise<void> {
 
   // Add trigger to update 'updated_at' column on each update
   await knex.raw(`
-    CREATE OR REPLACE FUNCTION update_user_timestamp()
-    RETURNS TRIGGER AS $$
-    BEGIN
-      NEW.updated_at = CURRENT_TIMESTAMP;
-      RETURN NEW;
-    END;
-    $$ LANGUAGE plpgsql;
+   CREATE OR REPLACE FUNCTION update_user_timestamp()
+   RETURNS TRIGGER AS $$
+   BEGIN
+   IF OLD IS DISTINCT FROM NEW AND OLD.last_login = NEW.last_login THEN
+   NEW.updated_at = CURRENT_TIMESTAMP;
+   END IF;
+   RETURN NEW;
+   END;
+   $$ LANGUAGE plpgsql;
   `);
 
   // Create PostgreSQL trigger 'update_user_timestamp' if it doesn't exist
