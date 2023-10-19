@@ -151,7 +151,7 @@ export async function create(order: Partial<Order>) {
       error
     );
   } finally {
-    await clearCache(['/orders*', '/customers/*']);
+    await clearCache(['/orders*', '/customers/*', '/stats*']);
   }
 }
 
@@ -166,7 +166,7 @@ export async function update(updatedOrder: Partial<Order>) {
       error
     );
   } finally {
-    await clearCache(['/orders*', '/customers/*']);
+    await clearCache(['/orders*', '/customers/*', '/stats*']);
   }
 }
 
@@ -182,7 +182,7 @@ export async function markAsDeleted(order_id: string): Promise<void> {
       error
     );
   } finally {
-    await clearCache(['/orders*', '/customers/*']);
+    await clearCache(['/orders*', '/customers/*', '/stats*']);
   }
 }
 
@@ -196,6 +196,6 @@ export async function hardDelete(order_id: string) {
       error
     );
   } finally {
-    await clearCache(['/orders*', '/customers/*']);
+    await clearCache(['/orders*', '/customers/*', '/stats*']);
   }
 }

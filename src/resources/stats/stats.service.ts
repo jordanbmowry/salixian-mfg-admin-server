@@ -1,4 +1,5 @@
 import knex from '../../db/connection';
+import { getCache, setCache } from '../../db/redis/redisCache';
 
 function applyDateFilter(
   query: any,
@@ -16,165 +17,186 @@ function applyDateFilter(
   return query;
 }
 
+async function fetchFromCacheOrDb<T>(
+  trx: any,
+  redisKey: string,
+  queryCb: () => any,
+  processingCb: (result: any) => T
+): Promise<T> {
+  const cacheValue: T | null = (await getCache(redisKey)) as T;
+  if (cacheValue) {
+    return cacheValue;
+  }
+
+  const result = await queryCb();
+  const processedResult = processingCb(result);
+  await setCache(redisKey, processedResult);
+  return processedResult;
+}
+
 export async function calculateRevenue(
   trx: any,
+  redisKey: string,
   startDate?: Date,
   endDate?: Date
 ): Promise<number> {
-  try {
-    let query = trx('orders').sum('customer_cost as result');
-    query = applyDateFilter(query, 'order_date', startDate, endDate);
-
-    const result = await query;
-    return Number(result[0]?.result) || 0;
-  } catch (error) {
-    throw new Error(`Failed to calculate revenue: ${(error as Error).message}`);
-  }
+  return fetchFromCacheOrDb(
+    trx,
+    `${redisKey}-calculate-revenue`,
+    () => {
+      let query = trx('orders').sum('customer_cost as result');
+      return applyDateFilter(query, 'order_date', startDate, endDate);
+    },
+    (result: any) => Number(result[0]?.result) || 0
+  );
 }
 
 export async function countOrders(
   trx: any,
+  redisKey: string,
   startDate?: Date,
   endDate?: Date
 ): Promise<number> {
-  try {
-    let query = trx('orders').count('order_id as result');
-    query = applyDateFilter(query, 'order_date', startDate, endDate);
-
-    const result = await query;
-    return Number(result[0]?.result) || 0;
-  } catch (error) {
-    throw new Error(`Failed to count orders: ${(error as Error).message}`);
-  }
+  return fetchFromCacheOrDb(
+    trx,
+    `${redisKey}-count-orders`,
+    () => {
+      let query = trx('orders').count('order_id as result');
+      return applyDateFilter(query, 'order_date', startDate, endDate);
+    },
+    (result: any) => Number(result[0]?.result) || 0
+  );
 }
 
 export async function countCustomers(
   trx: any,
+  redisKey: string,
   startDate?: Date,
   endDate?: Date
 ): Promise<number> {
-  try {
-    let query = trx('customers').count('customer_id as result');
-    query = applyDateFilter(query, 'created_at', startDate, endDate);
-
-    const result = await query;
-    return Number(result[0]?.result) || 0;
-  } catch (error) {
-    throw new Error(`Failed to count customers: ${(error as Error).message}`);
-  }
-}
-
-interface QueryResult {
-  month: number;
-  year: number;
-  revenue?: number;
-  order_status?: string;
-  count?: number;
+  return fetchFromCacheOrDb(
+    trx,
+    `${redisKey}-count-customers`,
+    () => {
+      let query = trx('customers').count('customer_id as result');
+      return applyDateFilter(query, 'created_at', startDate, endDate);
+    },
+    (result: any) => Number(result[0]?.result) || 0
+  );
 }
 
 export async function getMonthlyRevenue(
   trx: any,
+  redisKey: string,
   startDate?: Date,
   endDate?: Date
 ): Promise<{ months: string[]; revenues: number[] }> {
-  try {
-    let query = trx('orders')
-      .select(
-        trx.raw(
-          'EXTRACT(YEAR FROM order_date) as year, EXTRACT(MONTH FROM order_date) as month, SUM(customer_cost) as revenue'
+  return fetchFromCacheOrDb(
+    trx,
+    `${redisKey}-get-monthly-revenue`,
+    () => {
+      let query = trx('orders')
+        .select(
+          trx.raw(
+            'EXTRACT(YEAR FROM order_date) as year, EXTRACT(MONTH FROM order_date) as month, SUM(customer_cost) as revenue'
+          )
         )
-      )
-      .groupBy('year', 'month')
-      .orderBy('year', 'asc')
-      .orderBy('month', 'asc');
-    query = applyDateFilter(query, 'order_date', startDate, endDate);
-
-    const results: any = await query;
-    return {
+        .groupBy('year', 'month')
+        .orderBy('year', 'asc')
+        .orderBy('month', 'asc');
+      return applyDateFilter(query, 'order_date', startDate, endDate);
+    },
+    (results: any) => ({
       months: results.map(
         (r: any) => `${String(r.month ?? 0).padStart(2, '0')}-${r.year ?? 0}`
       ),
       revenues: results.map((r: any) => parseFloat(r.revenue)),
-    };
-  } catch (error) {
-    throw new Error(
-      `Failed to fetch monthly revenue: ${(error as Error).message}`
-    );
-  }
+    })
+  );
 }
 
 export async function getOrderStatusDistribution(
   trx: any,
+  redisKey: string,
   startDate?: Date,
   endDate?: Date
 ): Promise<{ date: string[]; statuses: string[]; counts: number[] }> {
-  try {
-    let query = trx('orders')
-      .select(
-        trx.raw(
-          'EXTRACT(YEAR FROM order_date) as year, EXTRACT(MONTH FROM order_date) as month, order_status'
-        )
-      )
-      .count('* as count')
-      .groupBy('year', 'month', 'order_status')
-      .orderBy('year', 'asc')
-      .orderBy('month', 'asc')
-      .orderBy('order_status', 'asc');
-    query = applyDateFilter(query, 'order_date', startDate, endDate);
-
-    const results: Array<{
-      month: number | undefined;
-      year: number | undefined;
-      order_status: string;
-      count: number;
-    }> = await query;
-    return {
-      date: results.map((r) => `${String(r.month).padStart(2, '0')}-${r.year}`),
-      statuses: results.map((r) => r.order_status as string),
-      counts: results.map((r) => parseInt(r.count.toString(), 10)),
-    };
-  } catch (error) {
-    throw new Error(
-      `Failed to fetch order status distribution: ${(error as Error).message}`
-    );
+  interface OrderStatusResult {
+    month: number;
+    year: number;
+    order_status: string;
+    count: number;
   }
+
+  return fetchFromCacheOrDb(
+    trx,
+    `${redisKey}-get-order-status-distribution`,
+    () => {
+      let query = trx('orders')
+        .select(
+          trx.raw(
+            'EXTRACT(YEAR FROM order_date) as year, EXTRACT(MONTH FROM order_date) as month, order_status'
+          )
+        )
+        .count('* as count')
+        .groupBy('year', 'month', 'order_status')
+        .orderBy('year', 'asc')
+        .orderBy('month', 'asc')
+        .orderBy('order_status', 'asc');
+      return applyDateFilter(query, 'order_date', startDate, endDate);
+    },
+    (results: OrderStatusResult[]) => ({
+      date: results.map((r) => `${String(r.month).padStart(2, '0')}-${r.year}`),
+      statuses: results.map((r) => r.order_status),
+      counts: results.map((r) => parseInt(r.count.toString(), 10)),
+    })
+  );
 }
 
-type DashboardStats = {
-  revenue: number;
-  orderCount: number;
-  customerCount: number;
-  monthlyRevenue: { months: string[]; revenues: number[] };
-  orderStatusDistribution: {
-    date: string[];
-    statuses: string[];
-    counts: number[];
-  };
-};
-
-export async function getAggregateStats(startDate?: Date, endDate?: Date) {
-  return knex.transaction(async (trx: any) => {
-    try {
-      const revenue = await calculateRevenue(trx, startDate, endDate);
-      const orderCount = await countOrders(trx, startDate, endDate);
-      const customerCount = await countCustomers(trx, startDate, endDate);
-      const monthlyRevenue = await getMonthlyRevenue(trx, startDate, endDate);
-      const orderStatusDistribution = await getOrderStatusDistribution(
-        trx,
-        startDate,
-        endDate
-      );
-
-      return {
-        revenue,
-        orderCount,
-        customerCount,
-        monthlyRevenue,
-        orderStatusDistribution,
-      };
-    } catch (error) {
-      await trx.rollback();
-      throw error;
-    }
-  });
+export async function getAggregateStats(
+  redisKey: string,
+  startDate?: Date,
+  endDate?: Date
+) {
+  return fetchFromCacheOrDb(
+    null,
+    `${redisKey}-get-aggregate-stats`,
+    async () => {
+      return await knex.transaction(async (trx: any) => {
+        const revenue = await calculateRevenue(
+          trx,
+          redisKey,
+          startDate,
+          endDate
+        );
+        const orderCount = await countOrders(trx, redisKey, startDate, endDate);
+        const customerCount = await countCustomers(
+          trx,
+          redisKey,
+          startDate,
+          endDate
+        );
+        const monthlyRevenue = await getMonthlyRevenue(
+          trx,
+          redisKey,
+          startDate,
+          endDate
+        );
+        const orderStatusDistribution = await getOrderStatusDistribution(
+          trx,
+          redisKey,
+          startDate,
+          endDate
+        );
+        return {
+          revenue,
+          orderCount,
+          customerCount,
+          monthlyRevenue,
+          orderStatusDistribution,
+        };
+      });
+    },
+    (result: any) => result
+  );
 }

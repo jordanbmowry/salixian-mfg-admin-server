@@ -4,6 +4,7 @@ import { authenticateJWT } from '../../auth/authMiddleware';
 import { sanitizeQuery } from '../../utils/sanitizeMiddleware';
 import { getAggregateStats } from './stats.service';
 import { logMethod } from '../../config/logMethod';
+import { generateCacheKey } from '../../utils/generateCacheKey';
 
 /**
  * Checks if a given value is a string that represents a valid date.
@@ -38,7 +39,11 @@ export async function getDashboardStats(
       endDate = new Date(req.query.endDate as string);
     }
 
-    const stats = await getAggregateStats(startDate, endDate);
+    const stats = await getAggregateStats(
+      generateCacheKey(req, res, 'stats'),
+      startDate,
+      endDate
+    );
 
     res.json({
       status: 'success',

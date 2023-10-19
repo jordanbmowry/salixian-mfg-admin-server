@@ -40,7 +40,7 @@ export async function create(customer: Customer) {
       'Failed to create customer.'
     );
   } finally {
-    await clearCache(`/customers*`);
+    await clearCache([`/customers*`, '/stats*']);
   }
 }
 
@@ -110,7 +110,7 @@ export async function markAsDeleted(customer_id: string): Promise<void> {
       `Failed to soft delete customer ${customer_id}.`
     );
   } finally {
-    await clearCache(`/customers*`);
+    await clearCache([`/customers*`, '/stats*']);
   }
 }
 
@@ -141,7 +141,7 @@ export async function update(updatedCustomer: Partial<Customer>) {
       'Failed to update customer.'
     );
   } finally {
-    await clearCache(`/customers*`);
+    await clearCache([`/customers*`, '/stats*']);
   }
 }
 
@@ -239,7 +239,7 @@ export async function hardDelete(customer_id: string) {
       `Failed to delete customer with ID ${customer_id}`
     );
   } finally {
-    await clearCache(`/customers*`);
+    await clearCache([`/customers*`, '/stats*']);
   }
 }
 
