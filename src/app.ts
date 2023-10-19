@@ -8,7 +8,6 @@ import statsRouter from './resources/stats/stats.router';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import timeout from 'connect-timeout';
-import rateLimit from 'express-rate-limit';
 import logger from './config/logger';
 import { AppError } from './errors/AppError';
 import { HttpStatusCode } from './errors/httpStatusCode';
@@ -27,14 +26,6 @@ const CLIENT_URL_BASE_URL =
 
 const app: Application = express();
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 100,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: 'Too many requests from this IP, please try again later',
-});
-
 app.use(
   cors({
     origin: CLIENT_URL_BASE_URL,
@@ -46,7 +37,6 @@ app.use(timeout('15s'));
 app.use(express.json());
 app.use(pinoHttp({ logger }));
 app.use(cookieParser());
-app.use(limiter);
 
 app.use('/users', usersRouter);
 app.use('/customers', customersRouter);
