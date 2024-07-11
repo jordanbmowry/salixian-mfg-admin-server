@@ -1,23 +1,6 @@
 import { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
-  // Create enums
-  await knex.raw(`
-    DO $$ BEGIN
-      CREATE TYPE order_status_enum AS ENUM ('pending', 'in progress', 'complete', 'canceled');
-    EXCEPTION
-      WHEN duplicate_object THEN null;
-    END $$;
-  `);
-
-  await knex.raw(`
-    DO $$ BEGIN
-      CREATE TYPE payment_status_enum AS ENUM ('not paid', 'partially paid', 'fully paid');
-    EXCEPTION
-      WHEN duplicate_object THEN null;
-    END $$;
-  `);
-
   // Create the 'orders' table
   await knex.schema.createTable('orders', (table) => {
     table.uuid('order_id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
@@ -30,14 +13,8 @@ export async function up(knex: Knex): Promise<void> {
     table.decimal('total_write_off', 14, 2).defaultTo(0);
     table.decimal('profit', 14, 2).defaultTo(0);
     table.text('notes');
-    table
-      .specificType('order_status', 'order_status_enum')
-      .notNullable()
-      .defaultTo('pending');
-    table
-      .specificType('payment_status', 'payment_status_enum')
-      .notNullable()
-      .defaultTo('not paid');
+    table.string('order_status').notNullable().defaultTo('pending'); // Changed to string
+    table.string('payment_status').notNullable().defaultTo('not paid'); // Changed to string
     table
       .uuid('customer_id')
       .notNullable()
@@ -69,10 +46,8 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-  // Drop the trigger, the function, the 'orders' table, and the enums
+  // Drop the trigger, the function, and the 'orders' table
   await knex.raw('DROP TRIGGER IF EXISTS update_order_timestamp ON orders;');
   await knex.raw('DROP FUNCTION IF EXISTS update_order_timestamp;');
-  await knex.schema.dropTable('orders');
-  await knex.raw('DROP TYPE IF EXISTS order_status_enum;');
-  await knex.raw('DROP TYPE IF EXISTS payment_status_enum;');
+  return knex.schema.dropTable('orders');
 }

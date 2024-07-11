@@ -1,31 +1,46 @@
 import { Knex } from 'knex';
-// @ts-ignore
-import faker from 'faker';
 
 export async function seed(knex: Knex): Promise<void> {
   // Deletes ALL existing entries
   await knex('orders').del();
 
+  // Inserts seed entries
   const customers = await knex('customers').select('customer_id');
 
-  const orderStatuses = ['pending', 'in progress', 'complete', 'canceled'];
-  const paymentStatuses = ['not paid', 'partially paid', 'fully paid'];
-
-  const orders = Array.from({ length: 100 }).map(() => ({
-    order_date: faker.date.past(2),
-    order_description: faker.commerce.productDescription(),
-    customer_cost: faker.commerce.price(),
-    input_expenses: faker.commerce.price(),
-    taxes_fees: faker.commerce.price(),
-    shipping_cost: faker.commerce.price(),
-    total_write_off: faker.commerce.price(),
-    profit: faker.commerce.price(),
-    notes: faker.lorem.sentence(),
-    order_status: faker.random.arrayElement(orderStatuses),
-    payment_status: faker.random.arrayElement(paymentStatuses),
-    customer_id: faker.random.arrayElement(customers).customer_id,
-  }));
-
-  // Inserts seed entries
-  await knex('orders').insert(orders);
+  await knex('orders').insert([
+    {
+      order_id: knex.raw('uuid_generate_v4()'),
+      order_date: knex.fn.now(),
+      order_description: 'Custom wooden stock',
+      customer_cost: 200.0,
+      input_expenses: 50.0,
+      taxes_fees: 20.0,
+      shipping_cost: 10.0,
+      total_write_off: 0.0,
+      profit: 120.0,
+      notes: 'First order',
+      order_status: 'pending',
+      payment_status: 'not paid',
+      customer_id: customers[0].customer_id,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
+    {
+      order_id: knex.raw('uuid_generate_v4()'),
+      order_date: knex.fn.now(),
+      order_description: 'Ready-to-ship handguard',
+      customer_cost: 150.0,
+      input_expenses: 30.0,
+      taxes_fees: 15.0,
+      shipping_cost: 5.0,
+      total_write_off: 0.0,
+      profit: 100.0,
+      notes: 'Second order',
+      order_status: 'in progress',
+      payment_status: 'partially paid',
+      customer_id: customers[1].customer_id,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
+  ]);
 }

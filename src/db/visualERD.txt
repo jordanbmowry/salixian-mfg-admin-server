@@ -1,0 +1,30 @@
++-----------------+       +----------------+       +----------------+       +----------------+       +----------------+
+|     Users       |       |   Customers    |       |    Orders      |       |    Products    |       |  Categories   |
++-----------------+       +----------------+       +----------------+       +----------------+       +----------------+
+| user_id (PK)    |       | customer_id(PK)|       | order_id (PK)  |       | product_id (PK)|       | category_id(PK)|
+| email           |       | first_name     |       | order_date     |       | name           |       | category_name  |
+| role            |       | last_name      |       | order_desc     |       | description    |       | category_desc  |
+| first_name      |       | email          |       | customer_cost  |       | price          |       | created_at     |
+| last_name       |       | phone_number   |       | input_expenses |       | stock_quantity |       | updated_at     |
+| password        |       | shipping_addr  |       | taxes_fees     |       | category       |       +----------------+
+| notes           |       | shipping_city  |       | shipping_cost  |       | firearm_type   |
+| last_login      |       | shipping_state |       | total_write_off|       | is_custom      |
+| created_at      |       | shipping_zip   |       | profit         |       | display        |
+| updated_at      |       | billing_addr   |       | notes          |       | created_at     |
++-----------------+       | billing_city   |       | order_status   |       | updated_at     |
+                          | billing_state  |       | payment_status |       +----------------+
+                          | billing_zip    |       | customer_id(FK)--> Customers.customer_id
+                          | notes          |       | created_at     |
+                          | created_at     |       | updated_at     |
+                          | updated_at     |       | deleted_at     |
+                          | deleted_at     |       +----------------+
+                          +----------------+
++----------------+       +-----------------+       +----------------+       +----------------+       +----------------+
+|ProductImages   |       | CustomOrderFiles|       |ProductCategories|
++----------------+       +-----------------+       +----------------+
+| image_id (PK)  |       | file_id (PK)   |       | product_id (PK, FK) --> Products.product_id
+| product_id (FK)--> Products.product_id  |       | order_id (FK) --> Orders.order_id
+| image_url      |       | file_url       |       | category_id (PK, FK) --> Categories.category_id
+| created_at     |       | created_at     |
+| updated_at     |       | updated_at     |
++----------------+       +----------------+
