@@ -8,7 +8,7 @@ export interface User {
   role: string;
   first_name: string;
   last_name: string;
-  password: string;
+  password?: string;
   user_id: string;
   last_login: string;
   created_at: string;

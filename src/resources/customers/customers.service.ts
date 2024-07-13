@@ -1,7 +1,7 @@
 import knex from '../../db/connection';
 import { Knex } from 'knex';
 import { paginate } from '../../utils/paginate';
-import { getCache, setCache, clearCache } from '../../db/redis/redisCache';
+import { getCache, setCache, clearCache } from '../../db/nodeCache/nodeCache';
 import { AppError } from '../../errors/AppError';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import type {
@@ -44,9 +44,9 @@ export async function create(customer: Customer) {
   }
 }
 
-export async function read(customer_id: string, redisKey: string) {
+export async function read(customer_id: string, nodeCache: string) {
   try {
-    const cacheValue = await getCache(redisKey);
+    const cacheValue = await getCache(nodeCache);
     if (cacheValue) {
       return cacheValue;
     }
@@ -64,7 +64,7 @@ export async function read(customer_id: string, redisKey: string) {
     }
 
     try {
-      await setCache(redisKey, result);
+      await setCache(nodeCache, result);
     } catch (cacheError) {
       if (cacheError instanceof Error) {
         console.error('Failed to set cache:', cacheError.message);
@@ -159,7 +159,7 @@ function applyTextFilter(
 
 export async function list(
   options: CustomerListOptions = {},
-  redisKey: string
+  nodeCache: string
 ): Promise<PaginationResult<Customer>> {
   try {
     const {
@@ -176,7 +176,7 @@ export async function list(
     } = options;
 
     const cacheValue = (await getCache(
-      redisKey
+      nodeCache
     )) as PaginationResult<Customer> | null;
 
     if (cacheValue) {
@@ -204,7 +204,7 @@ export async function list(
       order,
     });
 
-    await setCache(redisKey, {
+    await setCache(nodeCache, {
       ...result,
       pageSize,
     });
@@ -249,11 +249,11 @@ export async function fetchOrdersByCustomerId(
   pageSize: number = DEFAULT_PAGE_SIZE,
   orderBy: string = 'order_id',
   order: 'asc' | 'desc' = 'asc',
-  redisKey: string
+  nodeCache: string
 ): Promise<PaginationResult<Order>> {
   try {
     const cacheValue = (await getCache(
-      redisKey
+      nodeCache
     )) as PaginationResult<Order> | null;
 
     if (cacheValue) {
@@ -268,7 +268,7 @@ export async function fetchOrdersByCustomerId(
       order,
     });
 
-    await setCache(redisKey, {
+    await setCache(nodeCache, {
       ...result,
       pageSize,
     });

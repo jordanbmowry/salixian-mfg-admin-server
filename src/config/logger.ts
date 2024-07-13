@@ -1,32 +1,21 @@
 import pino from 'pino';
-import { v4 as uuidv4 } from 'uuid';
 import pinoPretty from 'pino-pretty';
+import config from './config';
 
-export function generateId(request: any): string {
-  return request.headers['x-request-id'] || uuidv4();
-}
-
-const level = process.env.LOG_LEVEL || 'info';
-const nodeEnv = process.env.NODE_ENV || 'development';
-const isDevelopment = nodeEnv === 'development';
-
-const baseLoggerOptions = {
-  level: level,
-  name: 'myapp',
+const baseLoggerOptions: pino.LoggerOptions = {
+  level: config.nodeEnv === 'development' ? 'debug' : 'info',
+  name: 'salixian-mfg-admin-server',
 };
 
-let logger: pino.Logger;
-
-if (isDevelopment) {
-  const prettyStream = pinoPretty({
-    levelFirst: true,
-    translateTime: 'SYS:standard',
-    colorize: true,
-  });
-
-  logger = pino(baseLoggerOptions, prettyStream);
-} else {
-  logger = pino(baseLoggerOptions);
-}
+const logger = config.isDevelopment
+  ? pino(
+      baseLoggerOptions,
+      pinoPretty({
+        levelFirst: true,
+        translateTime: 'SYS:standard',
+        colorize: true,
+      })
+    )
+  : pino(baseLoggerOptions);
 
 export default logger;

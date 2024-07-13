@@ -9,9 +9,8 @@ export function validateDataInBody(schema: Joi.ObjectSchema) {
     logMethod(req, 'validateDataInBody');
     const { error } = schema.validate(req.body.data);
     if (error) {
-      return next(
-        new AppError(HttpStatusCode.BAD_REQUEST, `${error.details[0].message}.`)
-      );
+      const message = error.details?.[0]?.message || 'Invalid request data.';
+      return next(new AppError(HttpStatusCode.BAD_REQUEST, `${message}.`));
     }
     next();
   };

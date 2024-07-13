@@ -1,20 +1,33 @@
 import { Request } from 'express';
+import logger from './logger';
+import config from './config';
 
-export function logMethod(req: Request, methodName: string, data?: any) {
+interface LogDetails {
+  file: string;
+  method: string;
+  url: string;
+  httpMethod: string;
+  headers?: any;
+  body?: any;
+  returnData?: any;
+}
+
+export function logMethod(req: Request, methodName: string, data?: any): void {
   const { originalUrl, method, headers, body } = req;
 
-  const headersToLog =
-    process.env.NODE_ENV === 'development' ? headers : undefined;
+  const logDetails: LogDetails = {
+    file: __filename,
+    method: methodName,
+    url: originalUrl,
+    httpMethod: method,
+    headers: config.isDevelopment ? headers : undefined,
+    body: config.isDevelopment ? body : undefined,
+    returnData: data,
+  };
 
-  req.log.debug({
-    __filename,
-    methodName,
-    originalUrl,
-    method,
-    headers: headersToLog,
-  });
+  logger.debug(logDetails);
 
   if (data) {
-    req.log.trace({ __filename, methodName, return: true, data });
+    logger.trace({ ...logDetails, returnData: data });
   }
 }

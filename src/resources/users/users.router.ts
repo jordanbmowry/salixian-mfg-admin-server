@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import controller from './users.controller';
 import methodNotAllowed from '../../errors/methodNotAllowed';
+import { authenticateJWT } from '../../auth/authMiddleware';
+import { ensureAdmin } from '../../auth/ensureAdmin';
 
 const USERS_BASE_ROUTE = '/';
 const LOGIN_ROUTE = '/login';
@@ -11,24 +13,39 @@ const AUTH_STATUS_ROUTE = '/auth/status';
 
 const router = Router();
 
-router.route(USERS_BASE_ROUTE).get(controller.list).all(methodNotAllowed);
-
-router.route(LOGIN_ROUTE).post(controller.login).all(methodNotAllowed);
-
-router.route(LOGOUT_ROUTE).get(controller.logout).all(methodNotAllowed);
-
+// Users base route
 router
-  .route(USER_ID_ROUTE)
-  .get(controller.read)
-  .put(controller.update)
-  .delete(controller.delete)
+  .route(USERS_BASE_ROUTE)
+  .get(authenticateJWT, ensureAdmin, controller.list)
   .all(methodNotAllowed);
 
-router.route(REGISTER_ROUTE).post(controller.create).all(methodNotAllowed);
+// Login route
+router.route(LOGIN_ROUTE).post(controller.login).all(methodNotAllowed);
 
+// Logout route
+router
+  .route(LOGOUT_ROUTE)
+  .get(authenticateJWT, controller.logout)
+  .all(methodNotAllowed);
+
+// User ID route
+router
+  .route(USER_ID_ROUTE)
+  .get(authenticateJWT, controller.read)
+  .put(authenticateJWT, ensureAdmin, controller.update)
+  .delete(authenticateJWT, ensureAdmin, controller.delete)
+  .all(methodNotAllowed);
+
+// Register route
+router
+  .route(REGISTER_ROUTE)
+  .post(authenticateJWT, ensureAdmin, controller.create)
+  .all(methodNotAllowed);
+
+// Authentication status route
 router
   .route(AUTH_STATUS_ROUTE)
-  .get(controller.checkAuthStatus)
+  .get(authenticateJWT, controller.checkAuthStatus)
   .all(methodNotAllowed);
 
 export default router;

@@ -33,19 +33,26 @@ async function orderExists(
   next: NextFunction
 ): Promise<void> {
   logMethod(req, 'orderExists');
+  const orderId = req.params.orderId;
+
+  if (!orderId) {
+    return next(
+      new AppError(HttpStatusCode.BAD_REQUEST, 'Order ID is required.')
+    );
+  }
+
   const order = await read(
-    req.params.orderId,
+    orderId,
     generateCacheKey(req, res, 'order-exists-check')
   );
+
   if (order) {
     res.locals.order = order;
     return next();
   }
+
   next(
-    new AppError(
-      HttpStatusCode.NOT_FOUND,
-      `Order ${req.params.orderId} cannot be found.`
-    )
+    new AppError(HttpStatusCode.NOT_FOUND, `Order ${orderId} cannot be found.`)
   );
 }
 
@@ -170,6 +177,13 @@ async function handleSoftDelete(
 ): Promise<void> {
   logMethod(req, 'handleSoftDelete');
   const { orderId } = req.params;
+
+  if (!orderId) {
+    return next(
+      new AppError(HttpStatusCode.BAD_REQUEST, 'Order ID is required.')
+    );
+  }
+
   await markAsDeleted(orderId);
   res
     .status(HttpStatusCode.NO_CONTENT)

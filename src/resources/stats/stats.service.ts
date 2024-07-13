@@ -1,5 +1,5 @@
 import knex from '../../db/connection';
-import { getCache, setCache } from '../../db/redis/redisCache';
+import { getCache, setCache } from '../../db/nodeCache/nodeCache';
 
 function applyDateFilter(
   query: any,
@@ -19,30 +19,30 @@ function applyDateFilter(
 
 async function fetchFromCacheOrDb<T>(
   trx: any,
-  redisKey: string,
+  nodeCache: string,
   queryCb: () => any,
   processingCb: (result: any) => T
 ): Promise<T> {
-  const cacheValue: T | null = (await getCache(redisKey)) as T;
+  const cacheValue: T | null = (await getCache(nodeCache)) as T;
   if (cacheValue) {
     return cacheValue;
   }
 
   const result = await queryCb();
   const processedResult = processingCb(result);
-  await setCache(redisKey, processedResult);
+  await setCache(nodeCache, processedResult);
   return processedResult;
 }
 
 export async function calculateRevenue(
   trx: any,
-  redisKey: string,
+  nodeCache: string,
   startDate?: Date,
   endDate?: Date
 ): Promise<number> {
   return fetchFromCacheOrDb(
     trx,
-    `${redisKey}-calculate-revenue`,
+    `${nodeCache}-calculate-revenue`,
     () => {
       let query = trx('orders').sum('customer_cost as result');
       return applyDateFilter(query, 'order_date', startDate, endDate);
@@ -53,13 +53,13 @@ export async function calculateRevenue(
 
 export async function countOrders(
   trx: any,
-  redisKey: string,
+  nodeCache: string,
   startDate?: Date,
   endDate?: Date
 ): Promise<number> {
   return fetchFromCacheOrDb(
     trx,
-    `${redisKey}-count-orders`,
+    `${nodeCache}-count-orders`,
     () => {
       let query = trx('orders').count('order_id as result');
       return applyDateFilter(query, 'order_date', startDate, endDate);
@@ -70,13 +70,13 @@ export async function countOrders(
 
 export async function countCustomers(
   trx: any,
-  redisKey: string,
+  nodeCache: string,
   startDate?: Date,
   endDate?: Date
 ): Promise<number> {
   return fetchFromCacheOrDb(
     trx,
-    `${redisKey}-count-customers`,
+    `${nodeCache}-count-customers`,
     () => {
       let query = trx('customers').count('customer_id as result');
       return applyDateFilter(query, 'created_at', startDate, endDate);
@@ -87,13 +87,13 @@ export async function countCustomers(
 
 export async function getMonthlyRevenue(
   trx: any,
-  redisKey: string,
+  nodeCache: string,
   startDate?: Date,
   endDate?: Date
 ): Promise<{ months: string[]; revenues: number[] }> {
   return fetchFromCacheOrDb(
     trx,
-    `${redisKey}-get-monthly-revenue`,
+    `${nodeCache}-get-monthly-revenue`,
     () => {
       let query = trx('orders')
         .select(
@@ -117,7 +117,7 @@ export async function getMonthlyRevenue(
 
 export async function getOrderStatusDistribution(
   trx: any,
-  redisKey: string,
+  nodeCache: string,
   startDate?: Date,
   endDate?: Date
 ): Promise<{ date: string[]; statuses: string[]; counts: number[] }> {
@@ -130,7 +130,7 @@ export async function getOrderStatusDistribution(
 
   return fetchFromCacheOrDb(
     trx,
-    `${redisKey}-get-order-status-distribution`,
+    `${nodeCache}-get-order-status-distribution`,
     () => {
       let query = trx('orders')
         .select(
@@ -154,37 +154,42 @@ export async function getOrderStatusDistribution(
 }
 
 export async function getAggregateStats(
-  redisKey: string,
+  nodeCache: string,
   startDate?: Date,
   endDate?: Date
 ) {
   return fetchFromCacheOrDb(
     null,
-    `${redisKey}-get-aggregate-stats`,
+    `${nodeCache}-get-aggregate-stats`,
     async () => {
       return await knex.transaction(async (trx: any) => {
         const revenue = await calculateRevenue(
           trx,
-          redisKey,
+          nodeCache,
           startDate,
           endDate
         );
-        const orderCount = await countOrders(trx, redisKey, startDate, endDate);
+        const orderCount = await countOrders(
+          trx,
+          nodeCache,
+          startDate,
+          endDate
+        );
         const customerCount = await countCustomers(
           trx,
-          redisKey,
+          nodeCache,
           startDate,
           endDate
         );
         const monthlyRevenue = await getMonthlyRevenue(
           trx,
-          redisKey,
+          nodeCache,
           startDate,
           endDate
         );
         const orderStatusDistribution = await getOrderStatusDistribution(
           trx,
-          redisKey,
+          nodeCache,
           startDate,
           endDate
         );

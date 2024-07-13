@@ -50,6 +50,13 @@ async function handleSoftDelete(
 ): Promise<void> {
   logMethod(req, 'handleSoftDelete');
   const { customerId } = req.params;
+
+  if (!customerId) {
+    return next(
+      new AppError(HttpStatusCode.BAD_REQUEST, 'Customer ID is required.')
+    );
+  }
+
   await markAsDeleted(customerId);
   res.json({
     status: 'success',
@@ -86,10 +93,9 @@ export async function customerExists(
   const customerId = req.params.customerId ?? req.body.data.customer_id;
 
   if (!customerId) {
-    res
-      .status(HttpStatusCode.BAD_REQUEST)
-      .send({ error: 'Customer ID is required' });
-    return;
+    return next(
+      new AppError(HttpStatusCode.BAD_REQUEST, 'Customer ID is required.')
+    );
   }
 
   const customer = await read(

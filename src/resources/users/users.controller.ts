@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import config from '../../config/config';
 import {
   create,
   read,
@@ -31,18 +32,19 @@ import { Worker } from 'worker_threads';
 import argon2 from 'argon2';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { checkDuplicate } from '../../errors/checkDuplicates';
-import { generateCacheKey } from '../../utils/generateCacheKey';
-
-const { NODE_ENV = 'development', RAILWAY_PROJECT_ROOT } = process.env;
+import fs from 'fs';
 
 const BASE_PATH =
-  NODE_ENV === 'production'
-    ? RAILWAY_PROJECT_ROOT || ''
-    : process.env.BASE_PATH || '';
+  config.nodeEnv === 'production'
+    ? config.basePath
+    : path.resolve(__dirname, '../../../');
 
 const relativePath = path.join(BASE_PATH, 'dist/auth/hashWorker.js');
-
 const absolutePath = path.resolve(relativePath);
+
+if (!fs.existsSync(absolutePath)) {
+  throw new Error(`Cannot find module '${absolutePath}'`);
+}
 
 const worker = new Worker(absolutePath);
 
@@ -109,10 +111,7 @@ async function checkAndSetUser(
   res: Response
 ): Promise<void> {
   logMethod(req, 'checkAndSetUser');
-  const user = await read(
-    generateCacheKey(req, res, 'check-and-set-user'),
-    whereObj
-  );
+  const user = await read(whereObj);
   if (user) {
     res.locals.user = user;
     next();
@@ -211,7 +210,7 @@ async function deleteUser(req: RequestWithUser, res: Response): Promise<void> {
 
 async function listUsers(req: RequestWithUser, res: Response): Promise<void> {
   logMethod(req, 'listUsers');
-  const data = await list(generateCacheKey(req, res, 'list-users'));
+  const data = await list();
   res.json({ message: 'List users', data, status: 'success' });
 }
 
@@ -256,10 +255,9 @@ async function login(
   }
 
   const { role } = res.locals.user;
-  const privateKey = Buffer.from(
-    process.env.JWT_SECRET_KEY!,
-    'base64'
-  ).toString('utf8');
+  const privateKey = Buffer.from(config.jwtSecretKey, 'base64').toString(
+    'utf8'
+  );
   const token = jwt.sign({ username: email, id: user_id, role }, privateKey, {
     algorithm: 'RS256',
     expiresIn: '30d',

@@ -1,5 +1,6 @@
 import jwt, { VerifyErrors } from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import config from '../config/config';
 
 interface DecodedPayload {
   username: string;
@@ -22,10 +23,9 @@ export const authenticateJWT = (
       .json({ message: 'Access denied. No token provided.' });
   }
 
-  const privateKey = Buffer.from(
-    process.env.JWT_SECRET_KEY!,
-    'base64'
-  ).toString('utf8');
+  const privateKey = Buffer.from(config.jwtSecretKey!, 'base64').toString(
+    'utf8'
+  );
 
   jwt.verify(token, privateKey, (err: VerifyErrors | null, decoded: any) => {
     if (err) {

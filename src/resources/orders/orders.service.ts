@@ -6,19 +6,19 @@ import type {
   PaginationResult,
 } from '../../types/types';
 import { paginate } from '../../utils/paginate';
-import { getCache, setCache, clearCache } from '../../db/redis/redisCache';
+import { getCache, setCache, clearCache } from '../../db/nodeCache/nodeCache';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { AppError } from '../../errors/AppError';
 import { Knex } from 'knex';
 
-export async function list(redisKey: string): Promise<Order[]> {
+export async function list(nodeCache: string): Promise<Order[]> {
   try {
-    const cacheValue = (await getCache(redisKey)) as Order[];
+    const cacheValue = (await getCache(nodeCache)) as Order[];
     if (cacheValue) {
       return cacheValue;
     }
     const result = await knex('orders').select('*');
-    await setCache(redisKey, result);
+    await setCache(nodeCache, result);
     return result;
   } catch (error) {
     throw new AppError(
@@ -29,14 +29,17 @@ export async function list(redisKey: string): Promise<Order[]> {
   }
 }
 
-export async function read(order_id: string, redisKey: string): Promise<Order> {
+export async function read(
+  order_id: string,
+  nodeCache: string
+): Promise<Order> {
   try {
-    const cacheValue = (await getCache(redisKey)) as Order;
+    const cacheValue = (await getCache(nodeCache)) as Order;
     if (cacheValue) {
       return cacheValue;
     }
     const result = await knex('orders').select('*').where({ order_id }).first();
-    await setCache(redisKey, result);
+    await setCache(nodeCache, result);
     return result;
   } catch (error) {
     throw new AppError(
@@ -61,11 +64,11 @@ function applyTextFilter(
 
 export async function listOrdersWithCustomers(
   options: OrderListOptions = {},
-  redisKey: string
+  nodeCache: string
 ): Promise<PaginationResult<OrderWithCustomer>> {
   try {
     const cacheValue = (await getCache(
-      redisKey
+      nodeCache
     )) as PaginationResult<OrderWithCustomer>;
 
     if (cacheValue) {
@@ -125,7 +128,7 @@ export async function listOrdersWithCustomers(
       order,
     });
 
-    await setCache(redisKey, result);
+    await setCache(nodeCache, result);
 
     return result;
   } catch (error) {
