@@ -15,6 +15,10 @@ interface Config {
   defaultPagePagination: number;
   defaultPageSizePagination: number;
   isDevelopment: boolean;
+  awsAccessKeyId: string;
+  awsSecretAccessKey: string;
+  awsRegion: string;
+  s3BucketName: string;
 }
 
 const config: Config = {
@@ -37,6 +41,10 @@ const config: Config = {
     10
   ),
   isDevelopment: (process.env.NODE_ENV || 'development') === 'development',
+  awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+  awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  awsRegion: process.env.AWS_REGION || '',
+  s3BucketName: process.env.S3_BUCKET_NAME || '',
 };
 
 export default config;
