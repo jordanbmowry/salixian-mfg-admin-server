@@ -23,10 +23,10 @@ import {
 } from '../../utils/sanitizeMiddleware';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { orderSchema } from '../../errors/joiValidationSchemas';
-import { generateCacheKey } from '../../utils/generateCacheKey';
 
 const { DEFAULT_PAGE_PAGINATION = 1, DEFAULT_PAGE_SIZE = 10 } = process.env;
 
+// Middleware to check if an order exists by ID
 async function orderExists(
   req: Request,
   res: Response,
@@ -41,10 +41,7 @@ async function orderExists(
     );
   }
 
-  const order = await read(
-    orderId,
-    generateCacheKey(req, res, 'order-exists-check')
-  );
+  const order = await read(orderId);
 
   if (order) {
     res.locals.order = order;
@@ -56,12 +53,14 @@ async function orderExists(
   );
 }
 
+// Handler to list all orders
 async function listOrders(req: Request, res: Response): Promise<void> {
   logMethod(req, 'listOrders');
-  const data = await list(generateCacheKey(req, res, 'list-orders'));
+  const data = await list();
   res.json({ message: 'List orders', data, status: 'success' });
 }
 
+// Handler to read a specific order
 function readOrder(req: Request, res: Response) {
   logMethod(req, 'readOrder');
   res.json({
@@ -70,6 +69,8 @@ function readOrder(req: Request, res: Response) {
     message: 'Read order',
   });
 }
+
+// Handler to fetch orders with customer details
 
 async function fetchOrdersWithCustomers(
   req: Request,
@@ -90,28 +91,31 @@ async function fetchOrdersWithCustomers(
       phoneNumber,
     } = req.query;
 
-    const options: OrderListOptions = {
-      phoneNumber: (phoneNumber as string) || undefined,
-      page: Number(page),
-      pageSize: Number(pageSize),
+    const options = {
+      phoneNumber: phoneNumber as string,
+      page: Math.max(Number(page) || (DEFAULT_PAGE_PAGINATION as number), 1),
+      pageSize: Math.max(Number(pageSize) || (DEFAULT_PAGE_SIZE as number), 1),
       startDate: startDate ? new Date(startDate as string) : undefined,
       endDate: endDate ? new Date(endDate as string) : undefined,
-      email: (email as string) || undefined,
-      firstName: (firstName as string) || undefined,
-      lastName: (lastName as string) || undefined,
-      orderBy: (orderBy as string) || undefined,
-      order: (order as 'asc' | 'desc') || undefined,
+      email: email as string,
+      firstName: firstName as string,
+      lastName: lastName as string,
+      orderBy: orderBy as string,
+      order: order as 'asc' | 'desc',
     };
 
-    const { data, totalCount } = await listOrdersWithCustomers(
-      options,
-      generateCacheKey(req, res, 'list-orders-with-customers')
-    );
+    const {
+      data,
+      totalCount,
+      currentPage,
+      totalPages,
+      pageSize: size,
+    } = await listOrdersWithCustomers(options);
 
     const meta = {
-      currentPage: options.page,
-      totalPages: Math.ceil(totalCount / options.pageSize!),
-      pageSize: options.pageSize,
+      currentPage,
+      totalPages,
+      pageSize: size,
       totalCount,
     };
 
@@ -132,6 +136,7 @@ async function fetchOrdersWithCustomers(
   }
 }
 
+// Handler to create a new order
 async function handleCreate(
   req: Request,
   res: Response,
@@ -153,6 +158,7 @@ async function handleCreate(
   });
 }
 
+// Handler to update an existing order
 async function handleUpdate(
   req: Request,
   res: Response,
@@ -170,6 +176,7 @@ async function handleUpdate(
   res.json({ status: 'success', data, message: 'Updated order' });
 }
 
+// Handler to mark an order as deleted (soft delete)
 async function handleSoftDelete(
   req: Request,
   res: Response,
@@ -185,16 +192,21 @@ async function handleSoftDelete(
   }
 
   await markAsDeleted(orderId);
-  res
-    .status(HttpStatusCode.NO_CONTENT)
-    .json({ message: `Order ${orderId} soft deleted successfully.` });
+  res.status(HttpStatusCode.OK).json({
+    status: 'success',
+    message: `Order ${orderId} soft deleted successfully.`,
+  });
 }
 
+// Handler to hard delete an order
 async function handleHardDelete(req: Request, res: Response): Promise<void> {
   const { order } = res.locals;
   logMethod(req, 'handleHardDelete');
   await hardDelete(order.order_id);
-  res.sendStatus(HttpStatusCode.NO_CONTENT);
+  res.status(HttpStatusCode.OK).json({
+    status: 'success',
+    message: `Order ${order.order_id} hard deleted successfully.`,
+  });
 }
 
 export default {
@@ -238,6 +250,6 @@ export default {
     authenticateJWT,
     sanitizeParams,
     asyncErrorBoundary(orderExists),
-    handleHardDelete,
+    asyncErrorBoundary(handleHardDelete),
   ],
 };

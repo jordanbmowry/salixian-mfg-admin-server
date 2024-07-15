@@ -6,20 +6,15 @@ import type {
   PaginationResult,
 } from '../../types/types';
 import { paginate } from '../../utils/paginate';
-import { getCache, setCache, clearCache } from '../../db/nodeCache/nodeCache';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import { AppError } from '../../errors/AppError';
 import { Knex } from 'knex';
+import config from '../../config/config';
 
-export async function list(nodeCache: string): Promise<Order[]> {
+// Function to list all orders
+export async function list(): Promise<Order[]> {
   try {
-    const cacheValue = (await getCache(nodeCache)) as Order[];
-    if (cacheValue) {
-      return cacheValue;
-    }
-    const result = await knex('orders').select('*');
-    await setCache(nodeCache, result);
-    return result;
+    return await knex('orders').select('*');
   } catch (error) {
     throw new AppError(
       HttpStatusCode.INTERNAL_SERVER_ERROR,
@@ -29,18 +24,10 @@ export async function list(nodeCache: string): Promise<Order[]> {
   }
 }
 
-export async function read(
-  order_id: string,
-  nodeCache: string
-): Promise<Order> {
+// Function to read a specific order by ID
+export async function read(order_id: string): Promise<Order> {
   try {
-    const cacheValue = (await getCache(nodeCache)) as Order;
-    if (cacheValue) {
-      return cacheValue;
-    }
-    const result = await knex('orders').select('*').where({ order_id }).first();
-    await setCache(nodeCache, result);
-    return result;
+    return await knex('orders').select('*').where({ order_id }).first();
   } catch (error) {
     throw new AppError(
       HttpStatusCode.INTERNAL_SERVER_ERROR,
@@ -49,6 +36,8 @@ export async function read(
     );
   }
 }
+const DEFAULT_PAGE_PAGINATION = 1;
+const DEFAULT_PAGE_SIZE = 10;
 
 function applyTextFilter(
   query: Knex.QueryBuilder,
@@ -63,17 +52,21 @@ function applyTextFilter(
 }
 
 export async function listOrdersWithCustomers(
-  options: OrderListOptions = {},
-  nodeCache: string
+  options: OrderListOptions = {}
 ): Promise<PaginationResult<OrderWithCustomer>> {
   try {
-    const cacheValue = (await getCache(
-      nodeCache
-    )) as PaginationResult<OrderWithCustomer>;
-
-    if (cacheValue) {
-      return cacheValue;
-    }
+    const {
+      startDate,
+      endDate,
+      email,
+      phoneNumber,
+      firstName,
+      lastName,
+      page = DEFAULT_PAGE_PAGINATION,
+      pageSize = DEFAULT_PAGE_SIZE,
+      orderBy = 'o.order_id',
+      order = 'asc',
+    } = options;
 
     let query = knex('orders as o')
       .join('customers as c', 'o.customer_id', 'c.customer_id')
@@ -95,51 +88,43 @@ export async function listOrdersWithCustomers(
       .whereNull('c.deleted_at')
       .whereNull('o.deleted_at');
 
-    if (options.startDate && options.endDate) {
+    if (startDate && endDate) {
       query = query.whereBetween('o.created_at', [
-        options.startDate.toISOString(),
-        options.endDate.toISOString(),
+        startDate.toISOString(),
+        endDate.toISOString(),
       ]);
     }
 
-    if (options.phoneNumber) {
-      query = applyTextFilter(query, 'c.phone_number', options.phoneNumber);
-    }
+    if (email) applyTextFilter(query, 'c.email', email);
+    if (phoneNumber) applyTextFilter(query, 'c.phone_number', phoneNumber);
+    if (firstName) applyTextFilter(query, 'c.first_name', firstName);
+    if (lastName) applyTextFilter(query, 'c.last_name', lastName);
 
-    if (options.email) {
-      query = applyTextFilter(query, 'c.email', options.email);
-    }
-
-    if (options.firstName) {
-      query = applyTextFilter(query, 'c.first_name', options.firstName);
-    }
-
-    if (options.lastName) {
-      query = applyTextFilter(query, 'c.last_name', options.lastName);
-    }
-
-    const orderBy = options.orderBy || 'o.order_id';
-    const order = options.order || 'asc';
-
-    const result = await paginate<OrderWithCustomer>(query, {
-      page: options.page ?? 1,
-      pageSize: options.pageSize ?? 10,
+    const paginationOptions = {
+      page: Math.max(Number(page) || DEFAULT_PAGE_PAGINATION, 1),
+      pageSize: Math.max(Number(pageSize) || DEFAULT_PAGE_SIZE, 1),
       orderBy,
       order,
-    });
+    };
 
-    await setCache(nodeCache, result);
+    const result = await paginate<OrderWithCustomer>(query, paginationOptions);
 
     return result;
   } catch (error) {
+    if (error instanceof Error) {
+      throw new AppError(
+        HttpStatusCode.INTERNAL_SERVER_ERROR,
+        `Failed to list orders with customers: ${error.message}`
+      );
+    }
     throw new AppError(
       HttpStatusCode.INTERNAL_SERVER_ERROR,
-      'Failed to list orders with customers.',
-      error
+      'Failed to list orders with customers.'
     );
   }
 }
 
+// Function to create a new order
 export async function create(order: Partial<Order>) {
   try {
     const createdOrder = await knex('orders')
@@ -153,11 +138,10 @@ export async function create(order: Partial<Order>) {
       'Failed to create order.',
       error
     );
-  } finally {
-    await clearCache(['/orders*', '/customers/*', '/stats*']);
   }
 }
 
+// Function to update an existing order
 export async function update(updatedOrder: Partial<Order>) {
   try {
     const { order_id } = updatedOrder;
@@ -168,11 +152,10 @@ export async function update(updatedOrder: Partial<Order>) {
       `Failed to update order ${updatedOrder.order_id}.`,
       error
     );
-  } finally {
-    await clearCache(['/orders*', '/customers/*', '/stats*']);
   }
 }
 
+// Function to mark an order as deleted (soft delete)
 export async function markAsDeleted(order_id: string): Promise<void> {
   try {
     await knex('orders').where({ order_id }).update({
@@ -184,11 +167,10 @@ export async function markAsDeleted(order_id: string): Promise<void> {
       `Failed to soft delete order ${order_id}.`,
       error
     );
-  } finally {
-    await clearCache(['/orders*', '/customers/*', '/stats*']);
   }
 }
 
+// Function to hard delete an order
 export async function hardDelete(order_id: string) {
   try {
     await knex('orders').where({ order_id }).del();
@@ -198,7 +180,5 @@ export async function hardDelete(order_id: string) {
       `Failed to delete order ${order_id}.`,
       error
     );
-  } finally {
-    await clearCache(['/orders*', '/customers/*', '/stats*']);
   }
 }
