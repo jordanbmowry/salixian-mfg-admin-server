@@ -1,7 +1,6 @@
 import knex from '../../db/connection';
 import { Knex } from 'knex';
 import { paginate } from '../../utils/paginate';
-import { getCache, setCache, clearCache } from '../../db/nodeCache/nodeCache';
 import { AppError } from '../../errors/AppError';
 import { HttpStatusCode } from '../../errors/httpStatusCode';
 import type {
@@ -39,18 +38,10 @@ export async function create(customer: Customer) {
       HttpStatusCode.INTERNAL_SERVER_ERROR,
       'Failed to create customer.'
     );
-  } finally {
-    await clearCache([`/customers*`, '/stats*']);
   }
 }
-
-export async function read(customer_id: string, nodeCache: string) {
+export async function read(customer_id: string): Promise<Customer | null> {
   try {
-    const cacheValue = await getCache(nodeCache);
-    if (cacheValue) {
-      return cacheValue;
-    }
-
     const result = await knex('customers')
       .select('*')
       .where({ customer_id })
@@ -61,14 +52,6 @@ export async function read(customer_id: string, nodeCache: string) {
         HttpStatusCode.NOT_FOUND,
         `Customer with ID ${customer_id} not found.`
       );
-    }
-
-    try {
-      await setCache(nodeCache, result);
-    } catch (cacheError) {
-      if (cacheError instanceof Error) {
-        console.error('Failed to set cache:', cacheError.message);
-      }
     }
 
     return result;
@@ -109,8 +92,6 @@ export async function markAsDeleted(customer_id: string): Promise<void> {
       HttpStatusCode.INTERNAL_SERVER_ERROR,
       `Failed to soft delete customer ${customer_id}.`
     );
-  } finally {
-    await clearCache([`/customers*`, '/stats*']);
   }
 }
 
@@ -140,8 +121,6 @@ export async function update(updatedCustomer: Partial<Customer>) {
       HttpStatusCode.INTERNAL_SERVER_ERROR,
       'Failed to update customer.'
     );
-  } finally {
-    await clearCache([`/customers*`, '/stats*']);
   }
 }
 
@@ -158,8 +137,7 @@ function applyTextFilter(
 }
 
 export async function list(
-  options: CustomerListOptions = {},
-  nodeCache: string
+  options: CustomerListOptions = {}
 ): Promise<PaginationResult<Customer>> {
   try {
     const {
@@ -174,14 +152,6 @@ export async function list(
       orderBy = 'customer_id',
       order = 'asc',
     } = options;
-
-    const cacheValue = (await getCache(
-      nodeCache
-    )) as PaginationResult<Customer> | null;
-
-    if (cacheValue) {
-      return cacheValue;
-    }
 
     let query = knex('customers').whereNull('deleted_at');
 
@@ -202,11 +172,6 @@ export async function list(
       pageSize,
       orderBy,
       order,
-    });
-
-    await setCache(nodeCache, {
-      ...result,
-      pageSize,
     });
 
     return { ...result, pageSize };
@@ -238,8 +203,6 @@ export async function hardDelete(customer_id: string) {
       HttpStatusCode.INTERNAL_SERVER_ERROR,
       `Failed to delete customer with ID ${customer_id}`
     );
-  } finally {
-    await clearCache([`/customers*`, '/stats*']);
   }
 }
 
@@ -248,29 +211,15 @@ export async function fetchOrdersByCustomerId(
   page: number = DEFAULT_PAGE_PAGINATION,
   pageSize: number = DEFAULT_PAGE_SIZE,
   orderBy: string = 'order_id',
-  order: 'asc' | 'desc' = 'asc',
-  nodeCache: string
+  order: 'asc' | 'desc' = 'asc'
 ): Promise<PaginationResult<Order>> {
   try {
-    const cacheValue = (await getCache(
-      nodeCache
-    )) as PaginationResult<Order> | null;
-
-    if (cacheValue) {
-      return cacheValue;
-    }
-
     const query = knex('orders').where({ customer_id });
     const result = await paginate<Order>(query, {
       page,
       pageSize,
       orderBy,
       order,
-    });
-
-    await setCache(nodeCache, {
-      ...result,
-      pageSize,
     });
 
     return { ...result, pageSize };

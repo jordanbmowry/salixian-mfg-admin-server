@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import config from '../../config/config';
 import {
   list,
   read,
@@ -20,11 +21,11 @@ import {
   sanitizeParams,
   sanitizeQuery,
 } from '../../utils/sanitizeMiddleware';
-import { HttpStatusCode } from '../../errors/httpStatusCode';
+
 import { customerSchema } from '../../errors/joiValidationSchemas';
 import type { Customer, CustomerListOptions } from '../../types/types';
 import { checkDuplicate } from '../../errors/checkDuplicates';
-import { generateCacheKey } from '../../utils/generateCacheKey';
+import { HttpStatusCode } from '../../errors/httpStatusCode';
 
 const { DEFAULT_PAGE_PAGINATION = 1, DEFAULT_PAGE_SIZE = 10 } = process.env;
 
@@ -90,7 +91,7 @@ export async function customerExists(
   next: NextFunction
 ): Promise<void> {
   logMethod(req, 'customerExists');
-  const customerId = req.params.customerId ?? req.body.data.customer_id;
+  const customerId = req.params.customerId || req.body?.data?.customer_id;
 
   if (!customerId) {
     return next(
@@ -98,21 +99,26 @@ export async function customerExists(
     );
   }
 
-  const customer = await read(
-    customerId,
-    generateCacheKey(req, res, 'customer-existence-check')
-  );
-
-  if (customer) {
+  try {
+    const customer = await read(customerId);
+    if (!customer) {
+      throw new AppError(
+        HttpStatusCode.NOT_FOUND,
+        `Customer with ID ${customerId} not found.`
+      );
+    }
     res.locals.customer = customer;
-    return next();
+    next();
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'An unknown error occurred';
+    next(
+      new AppError(
+        HttpStatusCode.INTERNAL_SERVER_ERROR,
+        `Failed to read customer ${customerId}: ${errorMessage}`
+      )
+    );
   }
-  next(
-    new AppError(
-      HttpStatusCode.NOT_FOUND,
-      `Customer ${customerId} cannot be found.`
-    )
-  );
 }
 
 function readCustomer(req: Request, res: Response) {
@@ -132,8 +138,8 @@ async function listCustomers(
   try {
     logMethod(req, 'listCustomers');
     const {
-      page = DEFAULT_PAGE_PAGINATION,
-      pageSize = DEFAULT_PAGE_SIZE,
+      page = config.defaultPagePagination,
+      pageSize = config.defaultPageSize,
       startDate,
       endDate,
       email,
@@ -158,10 +164,7 @@ async function listCustomers(
       order,
     };
 
-    const { data, totalCount } = await list(
-      options,
-      generateCacheKey(req, res, 'list-customers')
-    );
+    const { data, totalCount } = await list(options);
 
     const meta = {
       currentPage: options.page,
@@ -207,8 +210,7 @@ async function handleGetCustomerWithOrders(
     page,
     pageSize,
     orderBy,
-    order,
-    generateCacheKey(req, res, 'orders-by-customer-id')
+    order
   );
 
   res.json({
