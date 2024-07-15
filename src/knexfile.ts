@@ -33,6 +33,7 @@ interface MyKnexConfig {
     pool: { min: number; max: number; idleTimeoutMillis?: number };
     migrations: { directory: string };
     seeds: { directory: string };
+    debug?: boolean;
   };
 }
 
@@ -51,6 +52,7 @@ const config: MyKnexConfig = {
     seeds: {
       directory: path.join(__dirname, 'db', 'seeds'),
     },
+    debug: true, // Enable query logging in development
   },
   production: {
     client: 'postgresql',
@@ -66,6 +68,7 @@ const config: MyKnexConfig = {
     seeds: {
       directory: path.join(__dirname, 'db', 'seeds'),
     },
+    debug: true,
   },
 };
 
